@@ -5,7 +5,12 @@
     <TargetFramework>netcoreapp2.2</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Utilities.fs" />
+    <Compile Include="Entities.fs" />
     <Compile Include="ConsoleUtils.fs" />
+    <Compile Include="Io.fs" />
+    <Compile Include="Web.fs" />
+    <Compile Include="Universe.fs" />
     <Compile Include="CommandLine.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

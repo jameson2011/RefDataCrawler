@@ -3,9 +3,29 @@
 open System
 
 module Program =
-
+    
     let private runCrawler =
         async {
+            let path = "v1/universe/regions/"
+            let client = HttpRequests.httpClient()
+            let req = HttpRoutes.url path
+                        |> HttpRequests.get
+                        
+            let! resp = req |> HttpResponses.getData client
+
+            let etag = match resp.Status with
+                        | HttpStatus.OK  -> resp.ETag
+                        | _ -> None
+
+            let req = HttpRoutes.url path
+                        |> HttpRequests.get
+                        |> HttpRequests.etag etag.Value.tag
+            let! resp2 = req |> HttpResponses.getData client
+
+
+            // get the ESI server status
+            // if different -> continue
+
             return 0 |> ignore
         }
 
