@@ -7,25 +7,43 @@ module Universe=
 
     type SolarSystem = JsonProvider<"./SampleSolarSystem.json">
 
-    let regionIdsRequest () = 
-        "v1/universe/regions/"  
-            |> HttpRoutes.url
-            |> HttpRequests.get
+    let getUrl = HttpRoutes.url >> HttpRequests.get
 
+    let regionIdsRequest () = 
+        "v1/universe/regions/"  |> getUrl
+
+    let regionRequest id = 
+        id |> sprintf "v1/universe/regions/%s/"  |> getUrl
+        
     let constellationIdsRequest() =
-        "v1/universe/constellations/"
-            |> HttpRoutes.url
-            |> HttpRequests.get
+        "v1/universe/constellations/" |> getUrl
+
+    let constellationRequest id =
+        id |> sprintf "v1/universe/constellations/%s/" |> getUrl
 
     let systemIdsRequest() =
-        "v1/universe/systems/"
-            |> HttpRoutes.url
-            |> HttpRequests.get
+        "v1/universe/systems/" |> getUrl
 
     let systemRequest id =
-        id  |> sprintf "v4/universe/systems/%s/"
-            |> HttpRoutes.url
-            |> HttpRequests.get
+        id  |> sprintf "v4/universe/systems/%s/" |> getUrl
+
+    let planetRequest id = 
+        id |> sprintf "v1/universe/planets/%s/" |> getUrl
+
+    let asteroidBelt id =
+        id |> sprintf "v1/universe/asteroid_belts/%s/" |> getUrl
+
+    let stationRequest id =
+        id |> sprintf "v1/universe/stations/%s/" |> getUrl
+
+    let moonRequest id =
+        id |> sprintf "v1/universe/moons/%s/" |> getUrl
+
+    let stargateRequest id =
+        id |> sprintf "v1/universe/stargates/%s/" |> getUrl
+
+    let starRequest id =
+        id |> sprintf "v1/universe/stars/%s/" |> getUrl
 
     // TODO: these should just be path / request constructors...
     let regionIds client =
