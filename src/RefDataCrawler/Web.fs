@@ -63,7 +63,7 @@ module HttpRequests=
 
 module HttpResponses=
     
-    let decompressGzip(content: HttpContent)=
+    let private decompressGzip(content: HttpContent)=
         async {
             use! stream = content.ReadAsStreamAsync() |> Async.AwaitTask
             use gzipStream = new GZipStream(stream, CompressionMode.Decompress)
@@ -71,40 +71,40 @@ module HttpResponses=
             return! rdr.ReadToEndAsync() |> Async.AwaitTask
         }
 
-    let extractContent (content: HttpContent) =
+    let private extractContent (content: HttpContent) =
             let isGzip = content.Headers.ContentEncoding
                             |> Seq.contains(HttpHeaders.gzip)
             match isGzip with
             | false -> content.ReadAsStringAsync() |> Async.AwaitTask
             | _ -> decompressGzip content
 
-    let getHeaderValue name (response: Http.HttpResponseMessage) = 
+    let private getHeaderValue name (response: Http.HttpResponseMessage) = 
         response.Headers
             |> Seq.filter (fun h -> h.Key = name)
             |> Seq.collect (fun h -> h.Value)
             |> Seq.tryHead
                        
     // TODO: error limits!
-    let getAge (response: System.Net.Http.HttpResponseMessage)=
+    let private getAge (response: System.Net.Http.HttpResponseMessage)=
         Option.ofNullable response.Headers.Age 
 
-    let getServerTime (response: System.Net.Http.HttpResponseMessage)=
+    let private getServerTime (response: System.Net.Http.HttpResponseMessage)=
         let age = getAge response
         Option.ofNullable response.Headers.Date
             |> Option.map DateTimeOffset.toUtc
             |> Option.map2 DateTime.addTimeSpan age
                     
-    let getExpires (response: System.Net.Http.HttpResponseMessage)=
+    let private getExpires (response: System.Net.Http.HttpResponseMessage)=
         Option.ofNullable response.Content.Headers.Expires 
             |> Option.map DateTimeOffset.toUtc
             
-    let getWait (response: Net.Http.HttpResponseMessage) =           
+    let private getWait (response: Net.Http.HttpResponseMessage) =           
         let expires = getExpires response            
         getServerTime response
             |> Option.map2 (DateTime.diff) expires 
             |> Option.map (max TimeSpan.Zero)
             
-    let getEtag (response: HttpResponseMessage)=
+    let private getEtag (response: HttpResponseMessage)=
         response |> getHeaderValue HttpHeaders.eTag
             
     let private parseOkResponse resp =
@@ -153,7 +153,7 @@ module HttpResponses=
             return resp |> getWait |> WebResponse.TooManyRequests
         }
         
-    let getData (client: HttpClient) (request: HttpRequestMessage) =
+    let sendRequest (client: HttpClient) (request: HttpRequestMessage) =
         async {
             use! resp = client.SendAsync(request) |> Async.AwaitTask
             

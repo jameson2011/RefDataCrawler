@@ -6,25 +6,57 @@ module Program =
     
     let private runCrawler =
         async {
-            let path = "v1/universe/regions/"
+            let start = System.DateTime.UtcNow
+
             let client = HttpRequests.httpClient()
-            let req = HttpRoutes.url path
-                        |> HttpRequests.get
-                        
-            let! resp = req |> HttpResponses.getData client
+            
+            let! resp = Universe.regionIdsRequest() 
+                        |> HttpResponses.sendRequest client
 
             let etag = match resp.Status with
                         | HttpStatus.OK  -> resp.ETag
                         | _ -> None
 
-            let req = HttpRoutes.url path
-                        |> HttpRequests.get
+            let! resp2 = Universe.regionIdsRequest()
                         |> HttpRequests.etag etag.Value.tag
-            let! resp2 = req |> HttpResponses.getData client
+                        |> HttpResponses.sendRequest client
 
+            let! regionIds = Universe.regionIds client
 
+            let! systemIDs = (client |> Universe.systemIds) 
+
+            sprintf "Found %i systems" systemIDs.Length |> Console.Out.WriteLine
+
+            let systemIDs = systemIDs |> Seq.map (fun i -> i.ToString()) |> List.ofSeq
+
+            
+            let rec getSystems ids systems =
+                async {
+                    if ids = [] then
+                        return systems
+                    else 
+                        let id::t = ids
+                        
+                        
+                        let! s = id |> Universe.system client
+                        
+                        let systems = match s with
+                                        | Some sys -> sys.Name |> sprintf "Got system %s %s" id |> Console.Out.WriteLine
+                                                      (sys :: systems)
+                                        | None -> systems
+                        
+                        return! getSystems t systems
+                        
+                }
+
+            let! systems = getSystems systemIDs []
             // get the ESI server status
             // if different -> continue
+
+            let finish = System.DateTime.UtcNow
+            let duration = finish - start
+
+            duration.TotalSeconds |> sprintf "Duration: %fsecs" |> Console.Out.WriteLine
 
             return 0 |> ignore
         }

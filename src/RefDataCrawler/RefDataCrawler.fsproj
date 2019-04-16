@@ -5,6 +5,9 @@
     <TargetFramework>netcoreapp2.2</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="SampleSolarSystem.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Compile Include="Utilities.fs" />
     <Compile Include="Entities.fs" />
     <Compile Include="ConsoleUtils.fs" />
@@ -14,5 +17,6 @@
     <Compile Include="CommandLine.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -1,7 +1,9 @@
 source https://www.nuget.org/api/v2
 
 nuget FSharp.Core 4.6.2
+nuget FSharp.Data
 nuget Microsoft.Extensions.CommandLineUtils
+nuget Newtonsoft.Json
 // [ FAKE GROUP ]
 group Build
     storage none

@@ -1,2 +1,4 @@
 Microsoft.Extensions.CommandLineUtils
 FSharp.Core
+Newtonsoft.Json
+FSharp.Data
