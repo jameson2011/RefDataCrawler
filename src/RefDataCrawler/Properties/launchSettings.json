@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RefDataCrawler": {
+      "commandName": "Project",
+      "commandLineArgs": "run"
+    }
+  }
+}
