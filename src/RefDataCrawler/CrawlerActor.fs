@@ -44,6 +44,20 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | StargateIds ids ->    ids |> List.ofSeq
         | _ ->                  []
 
+    let onGetServerStatus () =
+        async {
+            let! serverStatus = Esi.serverStatus client
+            // get the ESI server status
+            // if different -> continue
+            let msg = serverStatus |> Option.map (fun ss -> { ServerVersion.version = string ss.ServerVersion }
+                                                                |> Newtonsoft.Json.JsonConvert.SerializeObject
+                                                                |> (fun j -> ActorMessage.Entity ("server", "", "", j)) )
+            match msg with
+            | Some m -> writeEntity m // TODO: include "discovery" first 
+            | _ -> ignore 0
+
+            return TimeSpan.Zero
+        }
 
     let onGetRegionIds (post: PostMessage)=
         async {
@@ -72,7 +86,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
             let! systemIds = Esi.systemIds client // TODO: error!
 
             let systemIds = systemIds 
-                                //|> Seq.filter (fun s -> s = 30005003) // TODO: temporary
+                                |> Seq.filter (fun s -> s = 30005003) // TODO: temporary
                                 |> Array.ofSeq
             sprintf "Found %i systems" systemIds.Length |> ActorMessage.Info |> log
             systemIds |> Seq.map (string >> ActorMessage.SolarSystemId) |> Seq.iter post
@@ -205,21 +219,23 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
             let! nextWait = async {
                                     match inMsg with
-                                    | Regions ->          return! (onGetRegionIds post)
-                                    | RegionId id ->        return! (onEntity (entityType inMsg) Esi.regionRequest id)
+                                    | ServerStatus ->           return! onGetServerStatus()
 
-                                    | Constellations ->   return! (onGetConstellationIds post)
-                                    | ConstellationId id -> return! (onEntity (entityType inMsg) Esi.constellationRequest id)
+                                    | Regions ->                return! (onGetRegionIds post)
+                                    | RegionId id ->            return! (onEntity (entityType inMsg) Esi.regionRequest id)
 
-                                    | SolarSystems ->          return! (onGetSystemIds post)
-                                    | SolarSystemId id ->        return! (onSystemId post id)
+                                    | Constellations ->         return! (onGetConstellationIds post)
+                                    | ConstellationId id ->     return! (onEntity (entityType inMsg) Esi.constellationRequest id)
+
+                                    | SolarSystems ->           return! (onGetSystemIds post)
+                                    | SolarSystemId id ->       return! (onSystemId post id)
                                             
-                                    | PlanetIds ids ->        return! (onEntities (entityType inMsg) Esi.planetRequest ids)
-                                    | AsteroidBeltIds ids ->  return! (onEntities (entityType inMsg) Esi.asteroidBeltRequest ids)
-                                    | MoonIds ids ->          return! (onEntities (entityType inMsg) Esi.moonRequest ids)
-                                    | StarIds ids ->          return! (onEntities (entityType inMsg) Esi.starRequest ids)
-                                    | StationIds ids ->       return! (onEntities (entityType inMsg) Esi.stationRequest ids)
-                                    | StargateIds ids ->      return! (onEntities (entityType inMsg) Esi.stargateRequest ids)
+                                    | PlanetIds ids ->          return! (onEntities (entityType inMsg) Esi.planetRequest ids)
+                                    | AsteroidBeltIds ids ->    return! (onEntities (entityType inMsg) Esi.asteroidBeltRequest ids)
+                                    | MoonIds ids ->            return! (onEntities (entityType inMsg) Esi.moonRequest ids)
+                                    | StarIds ids ->            return! (onEntities (entityType inMsg) Esi.starRequest ids)
+                                    | StationIds ids ->         return! (onEntities (entityType inMsg) Esi.stationRequest ids)
+                                    | StargateIds ids ->        return! (onEntities (entityType inMsg) Esi.stargateRequest ids)
 
                                     | _ -> return TimeSpan.Zero
                                     }

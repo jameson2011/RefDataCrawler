@@ -9,6 +9,8 @@ type ActorMessage =
 | Error of string
 | Warning of string
 
+| ServerStatus
+
 | Regions
 | RegionId of string
 
@@ -27,7 +29,7 @@ type ActorMessage =
 | DiscoveredEntity of string * string
 | Entity of string * string * string * string
 | FinishedEntity of string * string
-| CrawlStatus
+| CrawlStatus of AsyncReplyChannel<CrawlStatus[]>
 
 type PostMessage= ActorMessage -> unit
 type PostString = string -> unit

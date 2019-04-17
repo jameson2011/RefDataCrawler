@@ -52,3 +52,9 @@ type CrawlerConfig = {
         targetPath: string;
     } with
     static member TargetPathDefault = @".\data\"
+
+type CrawlStatus = {
+    name: string;
+    discovered: int;
+    completed: int;
+    }

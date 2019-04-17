@@ -3,13 +3,14 @@
 open System
 
 module Program =
+    open System.Threading
     
     let private crawlerConfig (app: CommandLine.App) =
         { 
             CrawlerConfig.targetPath = CommandLine.getTargetFolderValue app 
         }
 
-    let private runCrawler (app: CommandLine.App)=
+    let private runCrawler (app: CommandLine.App) (cts: CancellationTokenSource)=
         async {
             let start = System.DateTime.UtcNow
 
@@ -18,47 +19,63 @@ module Program =
             let logger = LogPublishActor()
 
             "Starting" |> ActorMessage.Info |> logger.Post
-
-            let client = HttpRequests.httpClient()
             
-            // TODO: get the last known server version. If different to the current server version, start...
-            let! serverStatus = Esi.serverStatus client
-            // get the ESI server status
-            // if different -> continue
-
+                        
             let crawlStatus = CrawlStatusActor(logger.Post)
             let writer = EntityWriterActor(logger.Post, crawlStatus.Post, config)
             let crawler = CrawlerActor(logger.Post, crawlStatus.Post, writer.Post, config)
             
+            // TODO: subject to cmdline args
             [ 
-                //ActorMessage.Regions; 
+                ActorMessage.Regions; 
                 //ActorMessage.Constellations; // TODO: temp
                 ActorMessage.SolarSystems 
             ] |> Seq.iter crawler.Post
+                        
 
+            let isComplete() =
+                async {
+                    let! status = crawlStatus.GetStatus()
+
+                    let positives = status      |> Seq.filter (fun s -> s.discovered > 0)
+                                                |> Array.ofSeq
+                    let completions = positives |> Array.filter (fun s -> s.completed >= s.discovered)
+                                                
+                    // TODO: include accounting for error
+                    return completions.Length = status.Length
+                }
             
-            // TODO: WAIT... crawlStatus should hold stats
+            let rec checkComplete() = 
+                async {
+                    do! Async.Sleep(2000)
 
-            (*
+                    let! isComplete = isComplete()
+
+                    return! match isComplete with
+                            | false -> checkComplete()
+                            | true -> async { return ignore 0 }
+                            
+                    }
+
+            do! checkComplete()
+            
             let finish = System.DateTime.UtcNow
             let duration = finish - start
 
             duration.TotalSeconds |> sprintf "Duration: %fsecs" |> Console.Out.WriteLine
-            *)
+            
+            cts.Cancel()
+            
             return 0 |> ignore
         }
 
     let private startCrawler (app: CommandLine.App) =        
         let cts = new System.Threading.CancellationTokenSource()
 
-        Async.Start(runCrawler app, cts.Token)
+        Async.Start(runCrawler app cts)
         
-        Console.WriteLine("Hit Return to quit")
-        Console.ReadLine() |> ignore 
+        WaitHandle.WaitAny( [| cts.Token.WaitHandle |]) > 0
         
-        cts.Cancel()
-        
-        true
 
     let private createAppTemplate()=
         let app = CommandLine.createApp()
