@@ -118,9 +118,11 @@ type CrawlerActor(log: PostMessage, write: PostMessage, config: CrawlerConfig)=
         
         let post = inbox.Post
         let rec getNext(wait: TimeSpan) = async {
-                
-            // TODO: pause if wait nonzero
-            // 
+               
+            if(wait.TotalMilliseconds > 0.) then
+              wait.TotalMilliseconds |> sprintf "Throttling back for %f msec..." |> ActorMessage.Info |> log
+              do! Async.Sleep(int wait.TotalMilliseconds)
+            
             let! inMsg = inbox.Receive()
 
             let! nextWait = async {
