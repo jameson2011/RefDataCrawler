@@ -46,7 +46,7 @@ module Esi=
         id |> sprintf "v1/universe/asteroid_belts/%s/" |> getUrl
 
     let stationRequest id =
-        id |> sprintf "v1/universe/stations/%s/" |> getUrl
+        id |> sprintf "v2/universe/stations/%s/" |> getUrl
 
     let moonRequest id =
         id |> sprintf "v1/universe/moons/%s/" |> getUrl

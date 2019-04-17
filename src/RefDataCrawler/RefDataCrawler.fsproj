@@ -5,9 +5,15 @@
     <TargetFramework>netcoreapp2.2</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="SampleAsteroidBelt.json" />
+    <None Include="SamplePlanet.json" />
+    <None Include="SampleMoon.json" />
+    <None Include="SampleStation.json" />
+    <None Include="SampleStargate.json" />
     <None Include="SampleSolarSystem.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
+    <Content Include="SampleStar.json" />
     <None Include="SampleServerStatus.json" />
     <Compile Include="Utilities.fs" />
     <Compile Include="Entities.fs" />

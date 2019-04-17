@@ -1,0 +1,31 @@
+﻿{
+  "max_dockable_ship_volume": 50000000,
+  "name": "Jita IV - Moon 6 - Ytiri Storage",
+  "office_rental_cost": 128145799,
+  "owner": 1000004,
+  "position": {
+    "x": -107072593920,
+    "y": -18704916480,
+    "z": 436343562240
+  },
+  "race_id": 1,
+  "reprocessing_efficiency": 0.5,
+  "reprocessing_stations_take": 0.05,
+  "services": [
+    "courier-missions",
+    "reprocessing-plant",
+    "market",
+    "repair-facilities",
+    "fitting",
+    "news",
+    "storage",
+    "insurance",
+    "docking",
+    "office-rental",
+    "loyalty-point-store",
+    "navy-offices"
+  ],
+  "station_id": 60000361,
+  "system_id": 30000142,
+  "type_id": 1531
+}
