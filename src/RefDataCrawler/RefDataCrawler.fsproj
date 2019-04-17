@@ -6,8 +6,9 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="SampleSolarSystem.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
+    <None Include="SampleServerStatus.json" />
     <Compile Include="Utilities.fs" />
     <Compile Include="Entities.fs" />
     <Compile Include="ConsoleUtils.fs" />

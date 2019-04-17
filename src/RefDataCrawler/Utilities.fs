@@ -34,3 +34,10 @@ module DateTime=
 
         diff remoteUtc localUtc
             
+module Async =
+    let map<'a, 'b> (map: 'a -> 'b) (value: Async<'a>) =
+        async {
+            let! r = value
+            
+            return map r
+        }

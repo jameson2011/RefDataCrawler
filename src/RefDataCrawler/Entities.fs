@@ -12,7 +12,7 @@ type ETag =
     {
         tag: string;
     }
-
+type ServerStatus = JsonProvider<"./SampleServerStatus.json">
 type SolarSystem = JsonProvider<"./SampleSolarSystem.json">
 
 type HttpStatus =

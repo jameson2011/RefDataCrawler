@@ -176,6 +176,7 @@ module HttpResponses=
             return resp |> getWait |> WebResponse.TooManyRequests
         }
         
+    // TODO: move to a separate module...
     let sendRequest (client: HttpClient) (request: HttpRequestMessage) =
         async {
             use! resp = client.SendAsync(request) |> Async.AwaitTask

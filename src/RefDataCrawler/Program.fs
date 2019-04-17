@@ -16,20 +16,15 @@ module Program =
             let client = HttpRequests.httpClient()
             
             // TODO: get the last known server version. If different to the current server version, start...
+            let! serverStatus = Esi.serverStatus client
+            // 
 
-            let! resp = Esi.regionIdsRequest() 
-                        |> HttpResponses.sendRequest client
-                        
-            let etag = match resp.Status with
-                        | HttpStatus.OK  -> resp.ETag
-                        | _ -> None
 
-            let! resp2 = Esi.regionIdsRequest()
-                            |> HttpRequests.etag etag.Value.tag
-                            |> HttpResponses.sendRequest client
 
             let! regionIds = Esi.regionIds client
+            // TODO: 
 
+                        
             let! systemIDs = (client |> Esi.systemIds) 
 
             sprintf "Found %i systems" systemIDs.Length |> Console.Out.WriteLine

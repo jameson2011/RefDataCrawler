@@ -5,7 +5,21 @@ open System.Net.Http
 module Esi=
 
     
-    let getUrl = HttpRoutes.url >> HttpRequests.get
+    let private getUrl = HttpRoutes.url >> HttpRequests.get
+
+    let private mapOkSome mapper resp =
+        match resp.Status with
+        | HttpStatus.OK -> mapper resp |> Some
+        | _ -> None
+
+    let private mapOkArray mapper resp =
+        match resp.Status with
+        | HttpStatus.OK -> mapper resp
+        | _ -> [||]
+
+
+    let serverStatusRequest() =
+        "v1/status" |> getUrl
 
     let regionIdsRequest () = 
         "v1/universe/regions/"  |> getUrl
@@ -23,7 +37,7 @@ module Esi=
         "v1/universe/systems/" |> getUrl
 
     let systemRequest id =
-        id  |> sprintf "v4/universe/systems/%s/" |> getUrl
+        id |> sprintf "v4/universe/systems/%s/" |> getUrl
 
     let planetRequest id = 
         id |> sprintf "v1/universe/planets/%s/" |> getUrl
@@ -42,16 +56,25 @@ module Esi=
 
     let starRequest id =
         id |> sprintf "v1/universe/stars/%s/" |> getUrl
+
+
+    let toServerStatus resp = 
+        resp.Message |> ServerStatus.Parse
         
+
+    let serverStatus client =
+        async {
+            let! resp = serverStatusRequest() |> HttpResponses.sendRequest client
+
+            return resp |> mapOkSome toServerStatus
+        }
+
     let regionIds client =
         async {
-
-            
+        
             let! resp = regionIdsRequest() |> HttpResponses.sendRequest client
             
-            return match resp.Status with
-                    | HttpStatus.OK -> resp.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>
-                    | _ -> [||] // TODO: exception!
+            return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]> )
         }
         
     
@@ -60,9 +83,7 @@ module Esi=
             let! resp = constellationIdsRequest() 
                             |> HttpResponses.sendRequest client
             
-            return match resp.Status with
-                    | HttpStatus.OK -> resp.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>
-                    | _ -> [||] // TODO:
+            return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
 
     let systemIds client =
@@ -71,9 +92,7 @@ module Esi=
             let! resp = systemIdsRequest() 
                             |> HttpResponses.sendRequest client
             
-            return match resp.Status with
-                    | HttpStatus.OK -> resp.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>
-                    | _ -> [||] // TODO:
+            return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
 
     let toSolarSystem (resp: WebResponse)=
