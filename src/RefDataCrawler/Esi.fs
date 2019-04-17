@@ -1,12 +1,10 @@
 ﻿namespace RefDataCrawler
 
 open System.Net.Http
-open FSharp.Data
 
-module Universe=
+module Esi=
 
-    type SolarSystem = JsonProvider<"./SampleSolarSystem.json">
-
+    
     let getUrl = HttpRoutes.url >> HttpRequests.get
 
     let regionIdsRequest () = 
@@ -44,8 +42,7 @@ module Universe=
 
     let starRequest id =
         id |> sprintf "v1/universe/stars/%s/" |> getUrl
-
-    // TODO: these should just be path / request constructors...
+        
     let regionIds client =
         async {
 
@@ -79,13 +76,15 @@ module Universe=
                     | _ -> [||] // TODO:
         }
 
-    
+    let toSolarSystem (resp: WebResponse)=
+        SolarSystem.Parse(resp.Message)
+
     let system client id =
         async {
             let! resp = id  |> systemRequest
                             |> HttpResponses.sendRequest client
             
             return match resp.Status with
-                    | HttpStatus.OK -> SolarSystem.Parse(resp.Message) |> Some
+                    | HttpStatus.OK -> resp |> toSolarSystem |> Some
                     | _ -> None // TODO:
         }

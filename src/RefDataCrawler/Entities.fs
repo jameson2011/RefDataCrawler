@@ -1,13 +1,7 @@
 ﻿namespace RefDataCrawler
 
 open System
-
-type HttpResponse= 
-    {
-        status: int;
-        body:   string;
-        etag:   string;// TODO: more - e.g. headers?
-    }
+open FSharp.Data
 
 type ServerVersion = 
     {
@@ -19,6 +13,7 @@ type ETag =
         tag: string;
     }
 
+type SolarSystem = JsonProvider<"./SampleSolarSystem.json">
 
 type HttpStatus =
     | OK
@@ -74,3 +69,7 @@ type WebResponse=
                 Message = (sprintf "Error %s getting data" (error.ToString()) );
                 ETag = None;
             }
+
+type CrawlerConfig = {
+        targetPath: string;
+    }

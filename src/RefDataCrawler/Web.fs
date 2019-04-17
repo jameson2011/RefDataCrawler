@@ -27,7 +27,11 @@ module HttpHeaders =
     [<Literal>]
     let ifNoneMatch = "If-None-Match"    
 
+    [<Literal>]
+    let esiErrorLimitRemain = "X-Esi-Error-Limit-Remain"
 
+    [<Literal>]
+    let esiErrorLimitReset  = "X-Esi-Error-Limit-Reset"
 
 module HttpRoutes =
     
@@ -44,7 +48,7 @@ module HttpRoutes =
 module HttpRequests=
     
     let httpClient()=
-        let client = new System.Net.Http.HttpClient()
+        let client = new HttpClient()
         client.DefaultRequestHeaders.UserAgent.ParseAdd(HttpHeaders.userAgent)
         client.DefaultRequestHeaders.AcceptEncoding.Add(System.Net.Http.Headers.StringWithQualityHeaderValue(HttpHeaders.gzip))
         client
@@ -84,21 +88,35 @@ module HttpResponses=
             |> Seq.collect (fun h -> h.Value)
             |> Seq.tryHead
                        
-    // TODO: error limits!
-    let private getAge (response: System.Net.Http.HttpResponseMessage)=
+    
+    let private getErrorLimitRemaining (response: HttpResponseMessage)=
+        response 
+            |> getHeaderValue HttpHeaders.esiErrorLimitRemain
+            |> Option.bind (fun v -> match System.Int32.TryParse(v) with
+                                     | true,x -> Some x
+                                     | _ -> None )
+            
+    let private getErrorLimitReset (response: HttpResponseMessage) =
+        response 
+            |> getHeaderValue HttpHeaders.esiErrorLimitReset 
+            |> Option.bind (fun v -> match System.Int32.TryParse(v) with
+                                         | true,x -> float x |> TimeSpan.FromSeconds |> Some 
+                                         | _ -> None )
+
+    let private getAge (response: HttpResponseMessage)=
         Option.ofNullable response.Headers.Age 
 
-    let private getServerTime (response: System.Net.Http.HttpResponseMessage)=
+    let private getServerTime (response: HttpResponseMessage)=
         let age = getAge response
         Option.ofNullable response.Headers.Date
             |> Option.map DateTimeOffset.toUtc
             |> Option.map2 DateTime.addTimeSpan age
                     
-    let private getExpires (response: System.Net.Http.HttpResponseMessage)=
+    let private getExpires (response: HttpResponseMessage)=
         Option.ofNullable response.Content.Headers.Expires 
             |> Option.map DateTimeOffset.toUtc
             
-    let private getWait (response: Net.Http.HttpResponseMessage) =           
+    let private getWait (response: HttpResponseMessage) =           
         let expires = getExpires response            
         getServerTime response
             |> Option.map2 (DateTime.diff) expires 
@@ -129,27 +147,32 @@ module HttpResponses=
 
     let private parse429Response resp =
         async {
+        // TODO: error limits
             return resp |> getWait |> WebResponse.TooManyRequests
         }
 
     let private parseUnauthResp resp = 
         async {
+        // TODO: error limits
             return resp |> getWait |> WebResponse.Unauthorized
             }
 
     let private parseErrorResp resp status = 
         async {
+        // TODO: error limits
             let retry = getWait resp
             return (WebResponse.Error retry status)
         }
 
     let private parseNotFoundResp resp =
         async {
+        // TODO: error limits
             return WebResponse.NotFound
         }
 
     let private parseTooManyRequests resp = 
         async {
+        // TODO: error limits
             return resp |> getWait |> WebResponse.TooManyRequests
         }
         

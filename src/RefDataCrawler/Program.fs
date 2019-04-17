@@ -4,26 +4,33 @@ open System
 
 module Program =
     
-    let private runCrawler =
+    let private crawlerConfig (app: CommandLine.App) =
+        { CrawlerConfig.targetPath = @"C:\\" } // TODO: from args
+
+    let private runCrawler (app: CommandLine.App)=
         async {
             let start = System.DateTime.UtcNow
 
+            let config = crawlerConfig app
+
             let client = HttpRequests.httpClient()
             
-            let! resp = Universe.regionIdsRequest() 
-                        |> HttpResponses.sendRequest client
+            // TODO: get the last known server version. If different to the current server version, start...
 
+            let! resp = Esi.regionIdsRequest() 
+                        |> HttpResponses.sendRequest client
+                        
             let etag = match resp.Status with
                         | HttpStatus.OK  -> resp.ETag
                         | _ -> None
 
-            let! resp2 = Universe.regionIdsRequest()
-                        |> HttpRequests.etag etag.Value.tag
-                        |> HttpResponses.sendRequest client
+            let! resp2 = Esi.regionIdsRequest()
+                            |> HttpRequests.etag etag.Value.tag
+                            |> HttpResponses.sendRequest client
 
-            let! regionIds = Universe.regionIds client
+            let! regionIds = Esi.regionIds client
 
-            let! systemIDs = (client |> Universe.systemIds) 
+            let! systemIDs = (client |> Esi.systemIds) 
 
             sprintf "Found %i systems" systemIDs.Length |> Console.Out.WriteLine
 
@@ -38,7 +45,7 @@ module Program =
                         let id::t = ids
                         
                         
-                        let! s = id |> Universe.system client
+                        let! s = id |> Esi.system client
                         
                         let systems = match s with
                                         | Some sys -> sys.Name |> sprintf "Got system %s %s" id |> Console.Out.WriteLine
@@ -64,7 +71,7 @@ module Program =
     let private startCrawler (app: CommandLine.App) =        
         let cts = new System.Threading.CancellationTokenSource()
 
-        Async.Start(runCrawler, cts.Token)
+        Async.Start(runCrawler app, cts.Token)
         
         Console.WriteLine("Hit Return to quit")
         Console.ReadLine() |> ignore 

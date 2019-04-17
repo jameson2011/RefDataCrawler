@@ -2,8 +2,32 @@
 
 module Io=
     open System.IO
+    open System.Text
 
     let path root subFolder = Path.Combine(root, subFolder)
 
+    let creatDir path =
+        async {
+            let di = Directory.CreateDirectory(path)
 
+            return di |> ignore
+        }
+        
+    let writeJson path (json: string) =
+        async {
+            use fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite)
+            let fsw = new StreamWriter(fs, Encoding.UTF8)
+
+            do! fsw.WriteAsync(json) |> Async.AwaitTask
+        }
+
+    let readJson path =
+        async {
+            use fs = new FileStream(path, FileMode.Open, FileAccess.Read)
+            let fsr = new StreamReader(fs, true)
+
+            let! json = fsr.ReadToEndAsync() |> Async.AwaitTask
+
+            return json
+        }
 
