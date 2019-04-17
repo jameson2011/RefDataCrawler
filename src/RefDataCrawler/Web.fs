@@ -125,70 +125,61 @@ module HttpResponses=
     let private getEtag (response: HttpResponseMessage)=
         response |> getHeaderValue HttpHeaders.eTag
             
+
     let private parseOkResponse resp =
         async {
             let retry = getWait resp
             let etag = getEtag resp
+            let errorLimit = (getErrorLimitRemaining resp) 
+            let errorReset = (getErrorLimitReset resp)
 
             use content = resp.Content
             let! s = extractContent content
             
-            return (WebResponse.Ok retry etag s)
+            return WebResponse.Ok retry etag s errorLimit errorReset
         }
 
     let private parseNotModifiedResponse resp = 
         async {
             let retry = getWait resp
             let etag = getEtag resp
-            
-            return (WebResponse.OkNotModified retry etag)
+            let errorLimit = (getErrorLimitRemaining resp) 
+            let errorReset = (getErrorLimitReset resp)
+
+            return WebResponse.OkNotModified retry etag errorLimit errorReset
         }
-
-
-    let private parse429Response resp =
-        async {
-        // TODO: error limits
-            return resp |> getWait |> WebResponse.TooManyRequests
-        }
-
+        
     let private parseUnauthResp resp = 
         async {
-        // TODO: error limits
-            return resp |> getWait |> WebResponse.Unauthorized
+            return WebResponse.Unauthorized (getWait resp) (getErrorLimitRemaining resp) (getErrorLimitReset resp)
             }
 
-    let private parseErrorResp resp status = 
+    let private parseErrorResp resp = 
         async {
-        // TODO: error limits
-            let retry = getWait resp
-            return (WebResponse.Error retry status)
+            return WebResponse.Error (getWait resp) resp.StatusCode (getErrorLimitRemaining resp) (getErrorLimitReset resp)
         }
 
     let private parseNotFoundResp resp =
         async {
-        // TODO: error limits
-            return WebResponse.NotFound
+            return WebResponse.NotFound (getErrorLimitRemaining resp) (getErrorLimitReset resp)
         }
 
     let private parseTooManyRequests resp = 
         async {
-        // TODO: error limits
-            return resp |> getWait |> WebResponse.TooManyRequests
+            return WebResponse.TooManyRequests (getWait resp) (getErrorLimitRemaining resp) (getErrorLimitReset resp)
         }
         
-    // TODO: move to a separate module...
-    let sendRequest (client: HttpClient) (request: HttpRequestMessage) =
+    let response (client: HttpClient) (request: HttpRequestMessage) =
         async {
             use! resp = client.SendAsync(request) |> Async.AwaitTask
             
             let! result = match resp.StatusCode with
                             | HttpStatusCode.OK ->  parseOkResponse resp
                             | HttpStatusCode.NotModified -> parseNotModifiedResponse resp
-                            | x when (int x) = 429 -> parse429Response resp
                             | HttpStatusCode.Unauthorized -> parseUnauthResp resp
                             | HttpStatusCode.NotFound -> parseNotFoundResp resp 
                             | HttpStatusCode.TooManyRequests -> parseTooManyRequests resp
-                            | x -> parseErrorResp resp x
+                            | _ -> parseErrorResp resp
 
             return result
             }

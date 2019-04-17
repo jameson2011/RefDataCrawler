@@ -64,7 +64,7 @@ module Esi=
 
     let serverStatus client =
         async {
-            let! resp = serverStatusRequest() |> HttpResponses.sendRequest client
+            let! resp = serverStatusRequest() |> HttpResponses.response client
 
             return resp |> mapOkSome toServerStatus
         }
@@ -72,7 +72,7 @@ module Esi=
     let regionIds client =
         async {
         
-            let! resp = regionIdsRequest() |> HttpResponses.sendRequest client
+            let! resp = regionIdsRequest() |> HttpResponses.response client
             
             return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]> )
         }
@@ -81,7 +81,7 @@ module Esi=
     let constellationIds client =
         async {
             let! resp = constellationIdsRequest() 
-                            |> HttpResponses.sendRequest client
+                            |> HttpResponses.response client
             
             return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
@@ -90,7 +90,7 @@ module Esi=
         async {
         
             let! resp = systemIdsRequest() 
-                            |> HttpResponses.sendRequest client
+                            |> HttpResponses.response client
             
             return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
@@ -101,7 +101,7 @@ module Esi=
     let system client id =
         async {
             let! resp = id  |> systemRequest
-                            |> HttpResponses.sendRequest client
+                            |> HttpResponses.response client
             
             return match resp.Status with
                     | HttpStatus.OK -> resp |> toSolarSystem |> Some

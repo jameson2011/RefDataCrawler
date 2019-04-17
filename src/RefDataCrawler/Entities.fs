@@ -27,47 +27,60 @@ type WebResponse=
     {
         Status: HttpStatus;
         Retry: TimeSpan option;
+        ErrorLimit: int option;
+        ErrorWindow: TimeSpan option;
+        ETag: ETag option;
         Message: string;
-        // TODO: errors?
-        ETag: ETag option
     } with
-    static member Ok retry etag message =
+    static member Ok retry etag message errorLimit errorWindow=
             {   WebResponse.Status = HttpStatus.OK;
                 Retry = retry;
                 Message = message;
+                ErrorLimit = errorLimit;
+                ErrorWindow = errorWindow;
                 ETag = etag |> Option.map (fun t -> { ETag.tag = t });
             }
-    static member OkNotModified retry etag = 
+    static member OkNotModified retry etag errorLimit errorWindow= 
             {
                 WebResponse.Status = HttpStatus.OkNotModified;
                 Retry = retry;
                 Message = "";
+                ErrorLimit = errorLimit;
+                ErrorWindow = errorWindow;
                 ETag = etag |> Option.map (fun t -> { ETag.tag = t })
             }
-    static member Unauthorized retry = 
+    static member Unauthorized retry errorLimit errorWindow= 
             {   Status = HttpStatus.Unauthorized;
                 Retry = retry;
                 Message = "";
+                ErrorLimit = errorLimit;
+                ErrorWindow = errorWindow;
                 ETag = None;
             }
-    static member TooManyRequests retry = 
+    static member TooManyRequests retry errorLimit errorWindow= 
             {   Status = HttpStatus.TooManyRequests;
                 Retry = retry;
                 Message = "";
                 ETag = None;
+                ErrorLimit = errorLimit;
+                ErrorWindow = errorWindow;
             }
-    static member NotFound =
+    static member NotFound errorLimit errorWindow=
             {
                 Status = HttpStatus.NotFound;
-                Retry = None;
+                Retry = None; //?
                 Message = "";
                 ETag = None;
+                ErrorLimit = errorLimit;
+                ErrorWindow = errorWindow;
             }
-    static member Error retry error = 
+    static member Error retry msg errorLimit errorWindow = 
             {   Status = HttpStatus.Error;
                 Retry = retry;
-                Message = (sprintf "Error %s getting data" (error.ToString()) );
+                Message = (sprintf "Error %s getting data" (msg.ToString()) );
                 ETag = None;
+                ErrorLimit = errorLimit;
+                ErrorWindow = errorWindow;
             }
 
 type CrawlerConfig = {
