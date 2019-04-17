@@ -33,7 +33,12 @@ module DateTime=
         let localUtc = localUtcStart.AddMilliseconds(localDuration)
 
         diff remoteUtc localUtc
-            
+        
+module Seq =
+    let reduceOptions values =
+        values  |> Seq.filter Option.isSome
+                |> Seq.map Option.get
+
 module Async =
     let map<'a, 'b> (map: 'a -> 'b) (value: Async<'a>) =
         async {

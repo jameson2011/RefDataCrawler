@@ -13,16 +13,16 @@ type CrawlStatusActor(log: PostMessage)=
         else (0,0)
     
     let onDiscovered (stats: StatsMap) entityType id =
-        let item = getCounts stats entityType 
+        let discovered,completed = getCounts stats entityType 
 
-        let typeStats = ((fst item)+1, (snd item))
+        let typeStats = (discovered+1, completed)
 
         stats.Add(entityType, typeStats)
     
     let onFinished (stats: StatsMap) entityType id =
-        let item = getCounts stats entityType 
+        let discovered,completed = getCounts stats entityType 
                    
-        let typeStats = ((fst item), (snd item) + 1)
+        let typeStats = (discovered, completed + 1)
 
         // TODO: if fst Item > 0 & fst Item = snd Item... perhaps we're done?
         
@@ -38,7 +38,7 @@ type CrawlStatusActor(log: PostMessage)=
                     match inMsg with
                     | DiscoveredEntity (t,id) -> onDiscovered stats t id
                     | FinishedEntity (t,id) ->  onFinished stats t id
-                    | CrawlStatus -> stats// TODO: post back results
+                    | CrawlStatus -> stats// TODO: post back results: AsyncReplyChannel<ShipTypeStatistics>
                     // TODO: errors?
                     | _ -> stats
                            

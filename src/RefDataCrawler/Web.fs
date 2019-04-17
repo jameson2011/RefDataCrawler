@@ -213,7 +213,7 @@ module HttpResponses=
                             | HttpStatusCode.Unauthorized -> parseUnauthResp resp
                             | HttpStatusCode.NotFound -> parseNotFoundResp resp 
                             | HttpStatusCode.TooManyRequests -> parseTooManyRequests resp
-                            | _ -> parseErrorResp resp
+                            | _ -> parseErrorResp resp // TODO: trap badgateway, add retry time
 
             return result
             }

@@ -17,12 +17,12 @@ type ActorMessage =
 
 | SystemIds
 | SystemId of string
-| StarIds of string
-| PlanetIds of string
-| MoonIds of string
-| AsteroidBeltIds of string
-| StationIds of string
-| StargateIds of string
+| StarIds of string[]
+| PlanetIds of string[]
+| MoonIds of string[]
+| AsteroidBeltIds of string[]
+| StationIds of string[]
+| StargateIds of string[]
 
 | DiscoveredEntity of string * string
 | Entity of string * string * string * string

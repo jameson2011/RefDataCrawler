@@ -31,8 +31,8 @@ module Program =
             let crawler = CrawlerActor(logger.Post, crawlStatus.Post, writer.Post, config)
             
             [ 
-                ActorMessage.RegionIds; 
-                ActorMessage.ConstellationIds; 
+                //ActorMessage.RegionIds; 
+                //ActorMessage.ConstellationIds; // TODO: temp
                 ActorMessage.SystemIds 
             ] |> Seq.iter crawler.Post
 
