@@ -126,48 +126,82 @@ module HttpResponses=
         response |> getHeaderValue HttpHeaders.eTag
             
 
-    let private parseOkResponse resp =
+    let private parseOkResponse (resp: HttpResponseMessage) =
         async {
-            let retry = getWait resp
-            let etag = getEtag resp
-            let errorLimit = (getErrorLimitRemaining resp) 
-            let errorReset = (getErrorLimitReset resp)
-
             use content = resp.Content
             let! s = extractContent content
             
-            return WebResponse.Ok retry etag s errorLimit errorReset
+            return
+                {   Status = HttpStatus.OK;
+                    Retry = (getWait resp);
+                    Message = s;
+                    ETag = getEtag resp |> Option.map (fun t -> { ETag.tag = t });
+                    ErrorLimit =  (getErrorLimitRemaining resp);
+                    ErrorWindow = (getErrorLimitReset resp);
+                }
         }
 
     let private parseNotModifiedResponse resp = 
         async {
-            let retry = getWait resp
-            let etag = getEtag resp
-            let errorLimit = (getErrorLimitRemaining resp) 
-            let errorReset = (getErrorLimitReset resp)
 
-            return WebResponse.OkNotModified retry etag errorLimit errorReset
+            return
+                {   Status = HttpStatus.OkNotModified;
+                    Retry = (getWait resp);
+                    Message = "";
+                    ETag = getEtag resp |> Option.map (fun t -> { ETag.tag = t });
+                    ErrorLimit =  (getErrorLimitRemaining resp);
+                    ErrorWindow = (getErrorLimitReset resp);
+                }
         }
         
     let private parseUnauthResp resp = 
         async {
-            return WebResponse.Unauthorized (getWait resp) (getErrorLimitRemaining resp) (getErrorLimitReset resp)
+            return
+                {   Status = HttpStatus.Unauthorized;
+                    Retry = (getWait resp);
+                    Message = "";
+                    ETag = None;
+                    ErrorLimit =  (getErrorLimitRemaining resp);
+                    ErrorWindow = (getErrorLimitReset resp);
+                }
             }
+            
+    let private parseTooManyRequests resp = 
+        async {
+            return
+                {   Status = HttpStatus.TooManyRequests;
+                    Retry = (getWait resp);
+                    Message = "";
+                    ETag = None;
+                    ErrorLimit =  (getErrorLimitRemaining resp);
+                    ErrorWindow = (getErrorLimitReset resp);
+                }
+        }
 
     let private parseErrorResp resp = 
         async {
-            return WebResponse.Error (getWait resp) resp.StatusCode (getErrorLimitRemaining resp) (getErrorLimitReset resp)
+            return
+                {   Status = HttpStatus.Error;
+                    Retry = (getWait resp);
+                    Message = sprintf "Error %i getting data" (int resp.StatusCode);
+                    ETag = None;
+                    ErrorLimit =  (getErrorLimitRemaining resp);
+                    ErrorWindow = (getErrorLimitReset resp);
+                }
         }
 
     let private parseNotFoundResp resp =
         async {
-            return WebResponse.NotFound (getErrorLimitRemaining resp) (getErrorLimitReset resp)
+            return
+                {   Status = HttpStatus.NotFound;
+                    Retry = (getWait resp);
+                    Message = "";
+                    ETag = None;
+                    ErrorLimit =  (getErrorLimitRemaining resp);
+                    ErrorWindow = (getErrorLimitReset resp);
+                }
         }
 
-    let private parseTooManyRequests resp = 
-        async {
-            return WebResponse.TooManyRequests (getWait resp) (getErrorLimitRemaining resp) (getErrorLimitReset resp)
-        }
         
     let response (client: HttpClient) (request: HttpRequestMessage) =
         async {
