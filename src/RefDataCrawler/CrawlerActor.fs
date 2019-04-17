@@ -22,7 +22,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         match msg with
         | RegionId _ ->        "region"
         | ConstellationId _ -> "constellation"
-        | SystemId _ ->        "system"
+        | SolarSystemId _ ->        "system"
         | PlanetIds _ ->        "planet"
         | AsteroidBeltIds _ ->  "belt"
         | MoonIds _ ->          "moon"
@@ -35,7 +35,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         match msg with
         | RegionId id 
         | ConstellationId id 
-        | SystemId id  ->       [ id ]
+        | SolarSystemId id  ->       [ id ]
         | PlanetIds ids 
         | AsteroidBeltIds ids 
         | MoonIds ids 
@@ -75,7 +75,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                 //|> Seq.filter (fun s -> s = 30005003) // TODO: temporary
                                 |> Array.ofSeq
             sprintf "Found %i systems" systemIds.Length |> ActorMessage.Info |> log
-            systemIds |> Seq.map (string >> ActorMessage.SystemId) |> Seq.iter post
+            systemIds |> Seq.map (string >> ActorMessage.SolarSystemId) |> Seq.iter post
             systemIds |> postDiscovered "system"
 
             return TimeSpan.Zero
@@ -180,7 +180,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                     TimeSpan.Zero
                 else
                     // TODO: notify status of error, so tallies match... or put this back onto the queue. May want to think about retry attempts...
-                    id |> ActorMessage.SystemId |> postBack
+                    id |> ActorMessage.SolarSystemId |> postBack
 
                     // TODO: error! what if "OkNotModified"?
                     // TODO: termination?
@@ -204,14 +204,14 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
             let! nextWait = async {
                                     match inMsg with
-                                    | RegionIds ->          return! (onGetRegionIds post)
+                                    | Regions ->          return! (onGetRegionIds post)
                                     | RegionId id ->        return! (onEntity (entityType inMsg) Esi.regionRequest id)
 
-                                    | ConstellationIds ->   return! (onGetConstellationIds post)
+                                    | Constellations ->   return! (onGetConstellationIds post)
                                     | ConstellationId id -> return! (onEntity (entityType inMsg) Esi.constellationRequest id)
 
-                                    | SystemIds ->          return! (onGetSystemIds post)
-                                    | SystemId id ->        return! (onSystemId post id)
+                                    | SolarSystems ->          return! (onGetSystemIds post)
+                                    | SolarSystemId id ->        return! (onSystemId post id)
                                             
                                     | PlanetIds ids ->        return! (onEntities (entityType inMsg) Esi.planetRequest ids)
                                     | AsteroidBeltIds ids ->  return! (onEntities (entityType inMsg) Esi.asteroidBeltRequest ids)

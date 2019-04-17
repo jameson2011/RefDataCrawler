@@ -9,14 +9,14 @@ type ActorMessage =
 | Error of string
 | Warning of string
 
-| RegionIds
+| Regions
 | RegionId of string
 
-| ConstellationIds
+| Constellations
 | ConstellationId of string
 
-| SystemIds
-| SystemId of string
+| SolarSystems
+| SolarSystemId of string
 | StarIds of string[]
 | PlanetIds of string[]
 | MoonIds of string[]
