@@ -14,6 +14,7 @@ type ETag =
     }
 
 type ServerStatus = JsonProvider<"./SampleServerStatus.json">
+type Constellation = JsonProvider<"./SampleConstellation.json">
 type SolarSystem = JsonProvider<"./SampleSolarSystem.json">
 type Planet = JsonProvider<"./SamplePlanet.json">
 type AsteroidBelt = JsonProvider<"./SampleAsteroidBelt.json">
@@ -21,6 +22,13 @@ type Moon = JsonProvider<"./SampleMoon.json">
 type Stargate = JsonProvider<"./SampleStargate.json">
 type Station = JsonProvider<"./SampleStation.json">
 type Star = JsonProvider<"./SampleStar.json">
+
+type EntityMetadata = {
+        entityType: string;
+        id: string;
+        captured: DateTimeOffset;
+        etag: string;
+    }
 
 type HttpStatus =
     | OK
@@ -43,4 +51,4 @@ type WebResponse=
 type CrawlerConfig = {
         targetPath: string;
     } with
-    static member TargetPathDefault = @"./data/"
+    static member TargetPathDefault = @".\data\"

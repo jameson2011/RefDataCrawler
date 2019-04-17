@@ -9,6 +9,23 @@ type ActorMessage =
 | Error of string
 | Warning of string
 
+| RegionIds
+| RegionId of string
+
+| ConstellationIds
+| ConstellationId of string
+
+| SystemIds
+| SystemId of string
+| StarId of string
+| PlanetId of string
+| MoonId of string
+| AsteroidBeltId of string
+| StationId of string
+| StargateId of string
+
+| Entity of string * string * string * string
+
 type PostMessage= ActorMessage -> unit
 type PostString = string -> unit
 type MessageInbox = MailboxProcessor<ActorMessage>

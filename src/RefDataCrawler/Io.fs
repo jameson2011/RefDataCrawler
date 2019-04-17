@@ -4,9 +4,11 @@ module Io=
     open System.IO
     open System.Text
 
+    let folder (path: string) = Path.GetDirectoryName(path)
+
     let path root subFolder = Path.Combine(root, subFolder)
 
-    let creatDir path =
+    let createFolder path =
         async {
             let di = Directory.CreateDirectory(path)
 
@@ -19,6 +21,10 @@ module Io=
             let fsw = new StreamWriter(fs, Encoding.UTF8)
 
             do! fsw.WriteAsync(json) |> Async.AwaitTask
+
+            fsw.Flush()
+            fs.Flush()
+
         }
 
     let readJson path =

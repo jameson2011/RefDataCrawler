@@ -26,46 +26,24 @@ module Program =
             // get the ESI server status
             // if different -> continue
 
-
-
-            let! regionIds = Esi.regionIds client
-            // TODO: 
-
-                        
-            let! systemIDs = (client |> Esi.systemIds) 
-
-            sprintf "Found %i systems" systemIDs.Length |> Console.Out.WriteLine
-
-            let systemIDs = systemIDs |> Seq.map (fun i -> i.ToString()) |> List.ofSeq
+            let writer = DataWriterActor(logger.Post, config)
+            let crawler = CrawlerActor(logger.Post, writer.Post, config)
+            
+            [ 
+                ActorMessage.RegionIds; 
+                ActorMessage.ConstellationIds; 
+                ActorMessage.SystemIds 
+            ] |> Seq.iter crawler.Post
 
             
-            let rec getSystems ids systems =
-                async {
-                    if ids = [] then
-                        return systems
-                    else 
-                        let id::t = ids
-                        
-                        
-                        let! s = id |> Esi.system client
-                        
-                        let systems = match s with
-                                        | Some sys -> sys.Name |> sprintf "Got system %s %s" id |> Console.Out.WriteLine
-                                                      (sys :: systems)
-                                        | None -> systems
-                        
-                        return! getSystems t systems
-                        
-                }
+            // TODO: WAIT...
 
-            let! systems = getSystems systemIDs []
-
-
+            (*
             let finish = System.DateTime.UtcNow
             let duration = finish - start
 
             duration.TotalSeconds |> sprintf "Duration: %fsecs" |> Console.Out.WriteLine
-
+            *)
             return 0 |> ignore
         }
 
@@ -76,12 +54,9 @@ module Program =
         
         Console.WriteLine("Hit Return to quit")
         Console.ReadLine() |> ignore 
-
-        //"Shutting down..." |> logInfo
-
+        
         cts.Cancel()
-
-
+        
         true
 
     let private createAppTemplate()=

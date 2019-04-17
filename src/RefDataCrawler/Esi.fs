@@ -42,7 +42,7 @@ module Esi=
     let planetRequest id = 
         id |> sprintf "v1/universe/planets/%s/" |> getUrl
 
-    let asteroidBelt id =
+    let asteroidBeltRequest id =
         id |> sprintf "v1/universe/asteroid_belts/%s/" |> getUrl
 
     let stationRequest id =
@@ -95,8 +95,12 @@ module Esi=
             return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
 
+    let toConstellation (resp: WebResponse)=
+        Constellation.Parse(resp.Message)
+
     let toSolarSystem (resp: WebResponse)=
         SolarSystem.Parse(resp.Message)
+
 
     let system client id =
         async {
