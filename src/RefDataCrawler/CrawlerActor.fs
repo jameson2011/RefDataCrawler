@@ -3,7 +3,7 @@
 open System
 open System.Net.Http
 
-type CrawlerActor(log: PostMessage, write: PostMessage, config: CrawlerConfig)=
+type CrawlerActor(log: PostMessage, writeEntity: PostMessage, config: CrawlerConfig)=
     
     let client = HttpRequests.httpClient()
 
@@ -45,7 +45,28 @@ type CrawlerActor(log: PostMessage, write: PostMessage, config: CrawlerConfig)=
             return TimeSpan.Zero
         }
 
-    let onSystemId (post: PostMessage) id = 
+    let onEntity entityType (req: string -> HttpRequestMessage) id=
+        async {
+            sprintf "Found %s %s" entityType id |> ActorMessage.Info |> log
+
+            let! resp = id  |> req
+                            |> HttpResponses.response client
+            return 
+                if resp.Status = HttpStatus.OK then
+                    
+                    let etag = resp.ETag |> Option.map (fun e -> e.tag) |> Option.defaultValue ""
+                    (entityType, id, etag, resp.Message) |> ActorMessage.Entity |> writeEntity
+
+                    TimeSpan.Zero
+
+                else
+                    match resp.Retry with
+                    | Some ts -> ts
+                    | _ -> TimeSpan.Zero
+        }
+    
+        
+    let onSystemId (postBack: PostMessage) id = 
         async {
             id |> sprintf "Found system %s" |> ActorMessage.Info |> log
 
@@ -58,7 +79,7 @@ type CrawlerActor(log: PostMessage, write: PostMessage, config: CrawlerConfig)=
                     let system = Esi.toSolarSystem resp
                     
                     let etag = resp.ETag |> Option.map (fun e -> e.tag) |> Option.defaultValue ""
-                    ("system", id, etag, resp.Message) |> ActorMessage.Entity |> write
+                    ("system", id, etag, resp.Message) |> ActorMessage.Entity |> writeEntity
                     
                     
                     // get the stations, planets, moons, belts, etc...
@@ -80,7 +101,7 @@ type CrawlerActor(log: PostMessage, write: PostMessage, config: CrawlerConfig)=
                                         |> Seq.map (string >> ActorMessage.StargateId) |> List.ofSeq
                 
                     planetIds @ starIds @ moonIds @ beltIds @ stationIds @ stargateIds
-                        |> Seq.iter post
+                        |> Seq.iter postBack
 
                     TimeSpan.Zero
                 else
@@ -92,27 +113,6 @@ type CrawlerActor(log: PostMessage, write: PostMessage, config: CrawlerConfig)=
                 
         }
 
-    let onEntity entityType (req: string -> HttpRequestMessage) id=
-        async {
-            sprintf "Found %s %s" entityType id |> ActorMessage.Info |> log
-
-            let! resp = id  |> req
-                            |> HttpResponses.response client
-            return 
-                if resp.Status = HttpStatus.OK then
-                    
-                    let etag = resp.ETag |> Option.map (fun e -> e.tag) |> Option.defaultValue ""
-                    (entityType, id, etag, resp.Message) |> ActorMessage.Entity |> write
-
-                    TimeSpan.Zero
-
-                else
-                    match resp.Retry with
-                    | Some ts -> ts
-                    | _ -> TimeSpan.Zero
-        }
-    
-        
 
     let pipe = MessageInbox.Start(fun inbox -> 
         
