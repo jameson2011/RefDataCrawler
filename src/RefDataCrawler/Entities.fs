@@ -35,4 +35,5 @@ type WebResponse=
     
 type CrawlerConfig = {
         targetPath: string;
-    }
+    } with
+    static member TargetPathDefault = @"./data/"

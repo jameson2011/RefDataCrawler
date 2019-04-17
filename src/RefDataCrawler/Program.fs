@@ -5,7 +5,9 @@ open System
 module Program =
     
     let private crawlerConfig (app: CommandLine.App) =
-        { CrawlerConfig.targetPath = @"C:\\" } // TODO: from args
+        { 
+            CrawlerConfig.targetPath = CommandLine.getTargetFolderValue app 
+        }
 
     let private runCrawler (app: CommandLine.App)=
         async {
@@ -17,7 +19,8 @@ module Program =
             
             // TODO: get the last known server version. If different to the current server version, start...
             let! serverStatus = Esi.serverStatus client
-            // 
+            // get the ESI server status
+            // if different -> continue
 
 
 
@@ -52,8 +55,7 @@ module Program =
                 }
 
             let! systems = getSystems systemIDs []
-            // get the ESI server status
-            // if different -> continue
+
 
             let finish = System.DateTime.UtcNow
             let duration = finish - start
