@@ -15,6 +15,10 @@ module Program =
 
             let config = crawlerConfig app
 
+            let logger = LogPublishActor()
+
+            "Starting" |> ActorMessage.Info |> logger.Post
+
             let client = HttpRequests.httpClient()
             
             // TODO: get the last known server version. If different to the current server version, start...

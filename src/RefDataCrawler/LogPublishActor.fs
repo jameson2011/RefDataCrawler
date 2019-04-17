@@ -2,7 +2,9 @@
 
 type LogPublishActor(configFile: string)= 
         
-    do log4net.Config.XmlConfigurator.Configure(System.IO.FileInfo(configFile)) |> ignore
+    let log4netRepo = log4net.LogManager.GetRepository(System.Reflection.Assembly.GetEntryAssembly())
+    let configFileInfo = System.IO.FileInfo(configFile)
+    do log4net.Config.XmlConfigurator.Configure(log4netRepo, configFileInfo) |> ignore
 
 
         
