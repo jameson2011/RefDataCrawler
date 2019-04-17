@@ -24,7 +24,7 @@ type CrawlStatusActor(log: PostMessage)=
                    
         let typeStats = (discovered, completed + 1)
 
-        // TODO: if fst Item > 0 & fst Item = snd Item... perhaps we're done?
+        // TODO: if discovered > 0 & completed >= discovered ... perhaps we're done?
         
         stats.Add(entityType, typeStats)
     
@@ -38,8 +38,8 @@ type CrawlStatusActor(log: PostMessage)=
                     match inMsg with
                     | DiscoveredEntity (t,id) -> onDiscovered stats t id
                     | FinishedEntity (t,id) ->  onFinished stats t id
-                    | CrawlStatus -> stats// TODO: post back results: AsyncReplyChannel<ShipTypeStatistics>
-                    // TODO: errors?
+                    | CrawlStatus -> stats// TODO: post back results: AsyncReplyChannel<StatsMap>
+                    // TODO: account for crawl errors
                     | _ -> stats
                            
             return! getNext(newStats)

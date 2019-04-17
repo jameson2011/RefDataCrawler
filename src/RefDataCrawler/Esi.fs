@@ -101,13 +101,4 @@ module Esi=
     let toSolarSystem (resp: WebResponse)=
         SolarSystem.Parse(resp.Message)
 
-
-    let system client id =
-        async {
-            let! resp = id  |> systemRequest
-                            |> HttpResponses.response client
-            
-            return match resp.Status with
-                    | HttpStatus.OK -> resp |> toSolarSystem |> Some
-                    | _ -> None // TODO:
-        }
+        

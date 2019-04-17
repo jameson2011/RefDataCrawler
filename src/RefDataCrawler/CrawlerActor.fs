@@ -47,7 +47,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
     let onGetRegionIds (post: PostMessage)=
         async {
-            let! regionIds = Esi.regionIds client
+            let! regionIds = Esi.regionIds client // TODO: error!
             
             sprintf "Found %i regions" regionIds.Length |> ActorMessage.Info |> log
             regionIds |> Seq.map (string >> ActorMessage.RegionId) |> Seq.iter post
@@ -58,7 +58,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
     let onGetConstellationIds (post: PostMessage)=
         async {
-            let! constellationIds = Esi.constellationIds client
+            let! constellationIds = Esi.constellationIds client // TODO: error!
             
             sprintf "Found %i constellations" constellationIds.Length |> ActorMessage.Info |> log
             constellationIds |> Seq.map (string >> ActorMessage.ConstellationId) |> Seq.iter post
@@ -69,7 +69,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
     let onGetSystemIds (post: PostMessage) =
         async {
-            let! systemIds = (client |> Esi.systemIds)
+            let! systemIds = Esi.systemIds client // TODO: error!
 
             let systemIds = systemIds 
                                 //|> Seq.filter (fun s -> s = 30005003) // TODO: temporary
@@ -105,14 +105,15 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
     
     let onEntities entityType (req: string -> HttpRequestMessage) (ids: string[]) =
         async {
-            ids |> Seq.map (sprintf "Found %s %s" entityType >> ActorMessage.Info) |> Seq.iter log
+            
+            ids |> String.concatenate ", " |>  sprintf "Found %s %s" entityType |> ActorMessage.Info |> log
 
             let reqs = ids |> Array.map (fun id -> req id |> HttpResponses.response client |> Async.map (fun r -> (id,r) ) )
 
             let! resps = reqs |> Async.Parallel
             
             let okResps = resps |> Array.filter (fun (id,r) -> r.Status = HttpStatus.OK)
-            // TODO: exceptions???
+            // TODO: errors???
 
             okResps 
                 |> Seq.iter (fun (id,resp) -> 

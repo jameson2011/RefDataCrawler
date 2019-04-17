@@ -34,6 +34,10 @@ module DateTime=
 
         diff remoteUtc localUtc
         
+module String =
+    let concatenate delim (values: seq<string>) =
+        System.String.Join(delim, values);
+
 module Seq =
     let reduceOptions values =
         values  |> Seq.filter Option.isSome
