@@ -3,7 +3,7 @@
 open System
 open System.Net.Http
 
-type CrawlerActor(log: PostMessage, writeEntity: PostMessage, config: CrawlerConfig)=
+type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostMessage, config: CrawlerConfig)=
     
     let client = HttpRequests.httpClient()
 
@@ -13,13 +13,46 @@ type CrawlerActor(log: PostMessage, writeEntity: PostMessage, config: CrawlerCon
         with
         | _ -> defaultValue
     
+    let postDiscovered entityType ids =
+        ids 
+            |> Seq.map string
+            |> Seq.map (fun s -> (entityType, s)) |> Seq.map ActorMessage.DiscoveredEntity |> Seq.iter crawlStatus
+
+    let entityType msg =
+        match msg with
+        | RegionId id ->        "region"
+        | ConstellationId id -> "constellation"
+        | SystemId id ->        "system"
+        | PlanetId id ->        "planet"
+        | AsteroidBeltId id ->  "belt"
+        | MoonId id ->          "moon"
+        | StarId id ->          "star"
+        | StationId id ->       "station"
+        | StargateId id ->      "stargate"
+        | _ -> ""
+
+    let entityTypeId msg =
+        match msg with
+        | RegionId id 
+        | ConstellationId id 
+        | SystemId id 
+        | PlanetId id 
+        | AsteroidBeltId id 
+        | MoonId id 
+        | StarId id 
+        | StationId id 
+        | StargateId id ->      id
+        | _ -> ""
+
+
     let onGetRegionIds (post: PostMessage)=
         async {
             let! regionIds = Esi.regionIds client
             
             sprintf "Found %i regions" regionIds.Length |> ActorMessage.Info |> log
             regionIds |> Seq.map (string >> ActorMessage.RegionId) |> Seq.iter post
-            
+            regionIds |> postDiscovered "region"
+
             return TimeSpan.Zero
         }
 
@@ -29,18 +62,21 @@ type CrawlerActor(log: PostMessage, writeEntity: PostMessage, config: CrawlerCon
             
             sprintf "Found %i constellations" constellationIds.Length |> ActorMessage.Info |> log
             constellationIds |> Seq.map (string >> ActorMessage.ConstellationId) |> Seq.iter post
-            
+            constellationIds |> postDiscovered "constellation"
+
             return TimeSpan.Zero
         }
 
     let onGetSystemIds (post: PostMessage) =
         async {
-            let! systemIDs = (client |> Esi.systemIds) 
+            let! systemIds = (client |> Esi.systemIds)
 
-            sprintf "Found %i systems" systemIDs.Length |> ActorMessage.Info |> log
-            systemIDs   //|> Seq.filter (fun s -> s = 30005003) // TODO: temporary
-                        |> Seq.map (string >> ActorMessage.SystemId) 
-                        |> Seq.iter post
+            let systemIds = systemIds 
+                                //|> Seq.filter (fun s -> s = 30005003) // TODO: temporary
+                                |> Array.ofSeq
+            sprintf "Found %i systems" systemIds.Length |> ActorMessage.Info |> log
+            systemIds |> Seq.map (string >> ActorMessage.SystemId) |> Seq.iter post
+            systemIds |> postDiscovered "system"
 
             return TimeSpan.Zero
         }
@@ -60,6 +96,8 @@ type CrawlerActor(log: PostMessage, writeEntity: PostMessage, config: CrawlerCon
                     TimeSpan.Zero
 
                 else
+                    // TODOK: on error, post back
+
                     match resp.Retry with
                     | Some ts -> ts
                     | _ -> TimeSpan.Zero
@@ -83,7 +121,8 @@ type CrawlerActor(log: PostMessage, writeEntity: PostMessage, config: CrawlerCon
                     
                     
                     // get the stations, planets, moons, belts, etc...
-                    let planetIds = system.Planets |> Seq.map (fun x -> string x.PlanetId |> ActorMessage.PlanetId) |> List.ofSeq
+                    let planetIds = (fun () -> system.Planets) |> safe [||]
+                                        |> Seq.map (fun x -> string x.PlanetId |> ActorMessage.PlanetId) |> List.ofSeq
                     
                     let starIds = (fun () -> [ string system.StarId ]) |> safe []
                                     |> List.map ActorMessage.StarId
@@ -100,11 +139,18 @@ type CrawlerActor(log: PostMessage, writeEntity: PostMessage, config: CrawlerCon
                     let stargateIds = (fun () -> system.Stargates) |> safe [||]
                                         |> Seq.map (string >> ActorMessage.StargateId) |> List.ofSeq
                 
-                    planetIds @ starIds @ moonIds @ beltIds @ stationIds @ stargateIds
-                        |> Seq.iter postBack
+                    let entities = planetIds @ starIds @ moonIds @ beltIds @ stationIds @ stargateIds
+                        
+                    entities |> Seq.iter postBack
+                    entities |> Seq.map (fun e -> (entityType e, entityTypeId e)) 
+                             |> Seq.map ActorMessage.DiscoveredEntity 
+                             |> Seq.iter crawlStatus
 
                     TimeSpan.Zero
                 else
+                    // TODO: notify status of error, so tallies match... or put this back onto the queue. May want to think about retry attempts...
+                    id |> ActorMessage.SystemId |> postBack
+
                     // TODO: error! what if "OkNotModified"?
                     // TODO: termination?
                     match resp.Retry with
@@ -128,20 +174,20 @@ type CrawlerActor(log: PostMessage, writeEntity: PostMessage, config: CrawlerCon
             let! nextWait = async {
                                     match inMsg with
                                     | RegionIds ->          return! (onGetRegionIds post)
-                                    | RegionId id ->        return! (onEntity "region" Esi.regionRequest id)
+                                    | RegionId id ->        return! (onEntity (entityType inMsg) Esi.regionRequest id)
 
                                     | ConstellationIds ->   return! (onGetConstellationIds post)
-                                    | ConstellationId id -> return! (onEntity "constellation" Esi.constellationRequest id)
+                                    | ConstellationId id -> return! (onEntity (entityType inMsg) Esi.constellationRequest id)
 
                                     | SystemIds ->          return! (onGetSystemIds post)
                                     | SystemId id ->        return! (onSystemId post id)
                                             
-                                    | PlanetId id ->        return! (onEntity "planet" Esi.planetRequest id)
-                                    | AsteroidBeltId id ->  return! (onEntity "belt" Esi.asteroidBeltRequest id)
-                                    | MoonId id ->          return! (onEntity "moon" Esi.moonRequest id)
-                                    | StarId id ->          return! (onEntity "star" Esi.starRequest id)
-                                    | StationId id ->       return! (onEntity "station" Esi.stationRequest id)
-                                    | StargateId id ->      return! (onEntity "stargate" Esi.stargateRequest id)
+                                    | PlanetId id ->        return! (onEntity (entityType inMsg) Esi.planetRequest id)
+                                    | AsteroidBeltId id ->  return! (onEntity (entityType inMsg) Esi.asteroidBeltRequest id)
+                                    | MoonId id ->          return! (onEntity (entityType inMsg) Esi.moonRequest id)
+                                    | StarId id ->          return! (onEntity (entityType inMsg) Esi.starRequest id)
+                                    | StationId id ->       return! (onEntity (entityType inMsg) Esi.stationRequest id)
+                                    | StargateId id ->      return! (onEntity (entityType inMsg) Esi.stargateRequest id)
 
                                     | _ -> return TimeSpan.Zero
                                     }

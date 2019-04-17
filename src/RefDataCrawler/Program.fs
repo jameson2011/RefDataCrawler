@@ -26,8 +26,9 @@ module Program =
             // get the ESI server status
             // if different -> continue
 
-            let writer = DataWriterActor(logger.Post, config)
-            let crawler = CrawlerActor(logger.Post, writer.Post, config)
+            let crawlStatus = CrawlStatusActor(logger.Post)
+            let writer = EntityWriterActor(logger.Post, crawlStatus.Post, config)
+            let crawler = CrawlerActor(logger.Post, crawlStatus.Post, writer.Post, config)
             
             [ 
                 ActorMessage.RegionIds; 
@@ -36,7 +37,7 @@ module Program =
             ] |> Seq.iter crawler.Post
 
             
-            // TODO: WAIT...
+            // TODO: WAIT... crawlStatus should hold stats
 
             (*
             let finish = System.DateTime.UtcNow

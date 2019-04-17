@@ -3,7 +3,7 @@
 open System
 open Newtonsoft.Json
 
-type DataWriterActor(log: PostMessage, config: CrawlerConfig)=
+type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: CrawlerConfig)=
     
     
     let execPath = System.Reflection.Assembly.GetEntryAssembly().Location |> Io.folder
@@ -19,6 +19,11 @@ type DataWriterActor(log: PostMessage, config: CrawlerConfig)=
 
     let path = Io.path rootPath
 
+    let postDiscovered entityType ids =
+        ids 
+            |> Seq.map string
+            |> Seq.map (fun s -> (entityType, s)) |> Seq.map ActorMessage.FinishedEntity |> Seq.iter crawlStatus
+
 
     let write (t, id, etag, json) =
         async {
@@ -33,10 +38,12 @@ type DataWriterActor(log: PostMessage, config: CrawlerConfig)=
             let metaFilePath = sprintf "%s.%s.meta.json" t id |> Io.path folder
             do! Io.writeJson metaFilePath meta
            
-            let filePath = sprintf "%s.%s.json" t id |> Io.path folder
+            let filePath = sprintf "%s.%s.data.json" t id |> Io.path folder
 
             do! Io.writeJson filePath json
             
+            [ id ] |> postDiscovered t
+
             sprintf "Entity %s %s written" t id |> ActorMessage.Info |> log
         }
 

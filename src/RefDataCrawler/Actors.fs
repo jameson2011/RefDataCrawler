@@ -24,7 +24,10 @@ type ActorMessage =
 | StationId of string
 | StargateId of string
 
+| DiscoveredEntity of string * string
 | Entity of string * string * string * string
+| FinishedEntity of string * string
+| CrawlStatus
 
 type PostMessage= ActorMessage -> unit
 type PostString = string -> unit
