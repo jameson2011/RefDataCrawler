@@ -87,8 +87,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
             sprintf "Found %i %s(s)" entityIds.Length entityType |> ActorMessage.Info |> log
                         
-            entityIds |> Seq.map string 
-                      |> Seq.chunkBySize 10
+            entityIds |> Seq.chunkBySize 10
                       |> Seq.map msg 
                       |> Seq.iter post
             entityIds |> postDiscovered entityType
