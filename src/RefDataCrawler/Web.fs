@@ -67,6 +67,10 @@ module HttpRequests=
 
 module HttpResponses=
     
+    let private defaultErrorWindow = TimeSpan.FromSeconds 5.
+    let private errorLimitThreshold = 90
+        
+
     let private decompressGzip(content: HttpContent)=
         async {
             use! stream = content.ReadAsStreamAsync() |> Async.AwaitTask
@@ -217,11 +221,9 @@ module HttpResponses=
     
     let maxWaitTime (resps: seq<RefDataCrawler.WebResponse>)=
         let errorLimitRemaining r = (r.ErrorLimit |> Option.defaultValue 0)
-        let defaultWait = TimeSpan.FromSeconds 5.
-        let defaultLimit = 90
         
-        let errors = resps  |> Seq.filter (fun r -> errorLimitRemaining r <= defaultLimit)
-                            |> Seq.map (fun r -> r.ErrorWindow |> Option.defaultValue defaultWait  )
+        let errors = resps  |> Seq.filter (fun r -> errorLimitRemaining r <= errorLimitThreshold)
+                            |> Seq.map (fun r -> r.ErrorWindow |> Option.defaultValue defaultErrorWindow  )
         
         errors  |> Seq.sortDescending
                 |> Seq.tryHead
