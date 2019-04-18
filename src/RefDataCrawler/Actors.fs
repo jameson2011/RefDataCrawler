@@ -29,7 +29,7 @@ type ActorMessage =
 | DiscoveredEntity of string * string
 | Entity of string * string * string * string
 | FinishedEntity of string * string
-| CrawlStatus of AsyncReplyChannel<CrawlStatus[]>
+| CrawlStatus of AsyncReplyChannel<CrawlProgress>
 
 type PostMessage= ActorMessage -> unit
 type PostString = string -> unit

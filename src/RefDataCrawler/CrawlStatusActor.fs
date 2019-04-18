@@ -12,28 +12,45 @@ type CrawlStatusActor(log: PostMessage)=
         if stats.ContainsKey(entityType) then stats.[entityType]
         else (0,0)
     
-    let onDiscovered (stats: StatsMap) entityType id =
+    let onDiscovered (stats: StatsMap) entityType =
         let discovered,completed = getCounts stats entityType 
 
         let typeStats = (discovered+1, completed)
 
         stats.Add(entityType, typeStats)
     
-    let onFinished (stats: StatsMap) entityType id =
+    let onFinished (stats: StatsMap) entityType =
         let discovered,completed = getCounts stats entityType 
                    
         let typeStats = (discovered, completed + 1)
-
-        // TODO: if discovered > 0 & completed >= discovered ... perhaps we're done?
-        
+                
         stats.Add(entityType, typeStats)
     
-    let onGetStats (stats: StatsMap) =
+    let entityTypeProgress(stats: StatsMap)=
         
-        stats |> Seq.map (fun kvp -> { CrawlStatus.name = kvp.Key;
+        stats |> Seq.map (fun kvp -> { CrawlEntityTypeProgress.name = kvp.Key;
                                                   discovered = fst kvp.Value;
                                                   completed = snd kvp.Value })
               |> Array.ofSeq
+
+
+    let isComplete (stats: CrawlEntityTypeProgress[]) =
+        if stats.Length = 0 then
+            false
+        else
+            let positives = stats      |> Seq.filter (fun s -> s.discovered > 0)
+                                        |> Array.ofSeq
+            let completions = positives |> Array.filter (fun s -> s.completed >= s.discovered)
+                                                
+            // TODO: include accounting for error
+            completions.Length = stats.Length
+
+    let onGetStats (stats: StatsMap) =
+        
+        let progress = entityTypeProgress stats
+
+        { CrawlProgress.entityTypes = progress; 
+                        isComplete = isComplete progress }
 
 
     let pipe = MessageInbox.Start(fun inbox -> 
@@ -44,11 +61,11 @@ type CrawlStatusActor(log: PostMessage)=
 
             let newStats = 
                     match inMsg with
-                    | DiscoveredEntity (t,id) ->    onDiscovered stats t id
-                    | FinishedEntity (t,id) ->      onFinished stats t id
-                    | CrawlStatus ch ->             stats |> onGetStats |> ch.Reply 
-                                                    stats
-                    | _ -> stats
+                    | DiscoveredEntity (t,_) -> onDiscovered stats t
+                    | FinishedEntity (t,_) ->   onFinished stats t
+                    | CrawlStatus ch ->         stats |> onGetStats |> ch.Reply 
+                                                stats
+                    | _ ->                      stats
                            
             return! getNext(newStats)
         }

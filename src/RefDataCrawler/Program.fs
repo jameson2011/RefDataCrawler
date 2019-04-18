@@ -32,29 +32,14 @@ module Program =
                 ActorMessage.SolarSystems 
             ] |> Seq.iter crawler.Post
                         
-
-            let isComplete() =
-                async {
-                    let! status = crawlStatus.GetStatus()
-
-                    if status.Length = 0 then
-                        return false
-                    else
-                        let positives = status      |> Seq.filter (fun s -> s.discovered > 0)
-                                                    |> Array.ofSeq
-                        let completions = positives |> Array.filter (fun s -> s.completed >= s.discovered)
-                                                
-                        // TODO: include accounting for error
-                        return completions.Length = status.Length
-                }
-            
+                        
             let rec checkComplete() = 
                 async {
-                    do! Async.Sleep(2000)
+                    do! Async.Sleep(1000)
 
-                    let! isComplete = isComplete()
-
-                    return! match isComplete with
+                    let! status = crawlStatus.GetStatus()
+                    
+                    return! match status.isComplete with
                             | false -> checkComplete()
                             | true -> async { return ignore 0 }
                             
