@@ -12,10 +12,10 @@ type ActorMessage =
 | ServerStatus
 
 | Regions
-| RegionId of string
+| RegionIds of string[]
 
 | Constellations
-| ConstellationId of string
+| ConstellationIds of string[]
 
 | SolarSystems
 | SolarSystemId of string

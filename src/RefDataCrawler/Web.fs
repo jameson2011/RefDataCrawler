@@ -202,6 +202,22 @@ module HttpResponses=
                 }
         }
 
+    
+    let maxWaitTime (resps: seq<RefDataCrawler.WebResponse>)=
+        let errorLimitRemaining r = (r.ErrorLimit |> Option.defaultValue 0)
+        let defaultWait = TimeSpan.FromSeconds 5.
+        let errors = resps  |> Seq.filter (fun r -> errorLimitRemaining r <= 90) 
+                            |> Seq.map (fun r -> (errorLimitRemaining r, // TODO: remaining is not in use 
+                                                    r.ErrorWindow |> Option.defaultValue defaultWait  ))
+                            |> Array.ofSeq
+        
+        if errors.Length = 0 then
+            TimeSpan.Zero
+        else
+            errors  |> Seq.sortByDescending (fun (i,t) -> t)
+                    |> Seq.map snd
+                    |> Seq.head
+            
         
     let response (client: HttpClient) (request: HttpRequestMessage) =
         async {
