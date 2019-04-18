@@ -13,11 +13,15 @@ module CommandLine=
     let private regionsArg = "regions"
     let private constellationsArg = "constellations"
     let private systemsArg = "systems"
+    let private groupsArg = "groups"
+
     let private verboseArg = "verbose"
     let private progressTickerArg = "progress"
 
     let private longestArg = 
-        [ targetFolderArg; regionsArg; constellationsArg; systemsArg; ]
+        [ targetFolderArg; regionsArg; constellationsArg; systemsArg; 
+            groupsArg; 
+            verboseArg; progressTickerArg;  ]
         |> Seq.map String.length
         |> Seq.max
 
@@ -76,6 +80,9 @@ module CommandLine=
     let addSystemsArg =                     addSwitchOption systemsArg systemsArg "Crawl Systems"
     let getSystemsValue app =               getSwitchOption systemsArg app
     
+    let addGroupsArg =                      addSwitchOption groupsArg groupsArg "Crawl Groups"
+    let getGroupsValue app =                getSwitchOption groupsArg app
+
     let addVerboseArg =                     addSwitchOption verboseArg verboseArg "Verbose logging"
     let getVerboseValue app =               getSwitchOption verboseArg app
     
@@ -98,6 +105,7 @@ module CommandLine=
                         >> addRegionsArg
                         >> addConstellationsArg
                         >> addSystemsArg
+                        >> addGroupsArg
                         >> addVerboseArg
                         >> addProgressTickerArg
                         >> setAction cmd

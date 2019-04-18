@@ -35,15 +35,22 @@ module HttpHeaders =
 
 module HttpRoutes =
     
-    let url path =
+    let urlQuery path (queryParams: seq<(string * string)>) =
         let ub = new UriBuilder(HttpConstants.esiHost)
 
         ub.Path <- path
-        ub.Query <- HttpConstants.selectTranquility
+
+        let query = queryParams |> Seq.map (fun (n,v) -> sprintf "%s=%s" n v)
+                                |> List.ofSeq 
+        let query = (HttpConstants.selectTranquility :: query)
+                                |> String.concatenate "&"
+                                
+        ub.Query <- query
 
         ub.Uri
 
-
+    
+    let url path = urlQuery path []
 
 module HttpRequests=
     

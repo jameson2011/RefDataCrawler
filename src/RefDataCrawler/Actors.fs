@@ -26,6 +26,10 @@ type ActorMessage =
 | StationIds of string[]
 | StargateIds of string[]
 
+| Groups
+| GroupIds of string[]
+
+
 | DiscoveredEntity of string * string
 | Entity of string * string * string * string
 | FinishedEntity of string * string

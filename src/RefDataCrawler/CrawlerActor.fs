@@ -32,6 +32,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | StarIds _ ->          "star"
         | StationIds _ ->       "station"
         | StargateIds _ ->      "stargate"
+        | Groups 
+        | GroupIds _ ->         "group"
         | _ -> ""
         
 
@@ -45,6 +47,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | MoonIds ids 
         | StarIds ids 
         | StationIds ids 
+        | GroupIds ids
         | StargateIds ids ->    ids |> List.ofSeq
         | _ ->                  []
 
@@ -60,6 +63,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | "region" ->   RegionIds
         | "constellation" -> ConstellationIds
         
+        | "groups" ->   GroupIds
+
         | _ -> invalidOp "unknown type" 
         
 
@@ -88,7 +93,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         async { 
             
             let! entityIds = getIds client // TODO: error checks
-                                |> Async.map (fun ids -> ids |> Seq.map string |> Array.ofSeq)
+                                |> Async.map (Seq.map string >> Array.ofSeq)
 
             sprintf "Found %i %s(s)" entityIds.Length entityType |> ActorMessage.Info |> log
                         
@@ -115,6 +120,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
             return TimeSpan.Zero
         }
+        
 
     let onEntities (postBack) entityType (req: string -> HttpRequestMessage) (ids: string[]) =
         async {
@@ -243,6 +249,9 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                     | StarIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.starRequest ids)
                                     | StationIds ids ->         return! (onEntities post (entityTypeName inMsg) Esi.stationRequest ids)
                                     | StargateIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.stargateRequest ids)
+
+                                    | Groups ->                 return! (onGetEntityIds post (entityTypeName inMsg) Esi.groupIds ActorMessage.GroupIds)
+                                    | GroupIds ids ->           return! (onEntities post (entityTypeName inMsg) Esi.groupRequest ids)
 
                                     | _ -> return TimeSpan.Zero
                                   }

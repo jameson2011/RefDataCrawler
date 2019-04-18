@@ -16,7 +16,7 @@ module Program =
                           crawlRegions = CommandLine.getRegionsValue app;
                           crawlConstellations = CommandLine.getConstellationsValue app;
                           crawlSystems = CommandLine.getSystemsValue app;
-
+                          crawlGroups = CommandLine.getGroupsValue app;
                           verboseLogging = verboseLogging;
                           showProgressTicker = showProgressTicker;
         }
@@ -32,9 +32,15 @@ module Program =
 
                 if config.crawlSystems then 
                     yield ActorMessage.SolarSystems
+
+                if config.crawlGroups then  
+                    yield ActorMessage.Groups
             } 
             |> Array.ofSeq 
-            |> (fun xs -> if xs.Length = 0 then [| ActorMessage.Regions; ActorMessage.Constellations; ActorMessage.SolarSystems |] else xs )
+            |> (fun xs ->   if xs.Length = 0 then 
+                                [|  ActorMessage.Regions; ActorMessage.Constellations; ActorMessage.SolarSystems; 
+                                    ActorMessage.Groups |] 
+                            else xs )
 
     
     let private progress (status: CrawlProgress) = 

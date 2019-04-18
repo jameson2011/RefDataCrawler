@@ -52,9 +52,11 @@ type WebResponse=
 type CrawlerConfig = 
     {
         targetPath: string;
+        
         crawlRegions: bool;
         crawlConstellations: bool;
         crawlSystems: bool;
+        crawlGroups: bool;
 
         verboseLogging: bool;
         showProgressTicker: bool;

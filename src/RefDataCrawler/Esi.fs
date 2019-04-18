@@ -1,11 +1,11 @@
 ﻿namespace RefDataCrawler
 
-open System.Net.Http
 
 module Esi=
 
     
     let private getUrl = HttpRoutes.url >> HttpRequests.get
+    let private getUrlQuery path query = HttpRoutes.urlQuery path query |> HttpRequests.get
 
     let private mapOkSome mapper resp =
         match resp.Status with
@@ -56,7 +56,12 @@ module Esi=
 
     let starRequest id =
         id |> sprintf "v1/universe/stars/%s/" |> getUrl
-
+        
+    let groupIdsRequest page =
+        getUrlQuery "v1/universe/groups/" [ ("page", string page) ]
+        
+    let groupRequest id =
+        id |> sprintf "v1/universe/groups/%s/" |> getUrl
 
     let toServerStatus resp = 
         resp.Message |> ServerStatus.Parse
@@ -94,6 +99,21 @@ module Esi=
             
             return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
+
+    let groupIds client =
+        let rec getGroupIds page (ids: int[]) =
+            async {
+                
+                let! resp = groupIdsRequest page
+                                |> HttpResponses.response client
+            
+                let pageIds = resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]> ) 
+                
+                return! match pageIds with
+                        | [||] -> async { return ids }
+                        | xs -> Array.concat [ids;xs] |> getGroupIds (page+1) 
+                }
+        getGroupIds 1 [||] 
 
     let toConstellation (resp: WebResponse)=
         Constellation.Parse(resp.Message)

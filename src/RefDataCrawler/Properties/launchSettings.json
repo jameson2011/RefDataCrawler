@@ -2,7 +2,7 @@
   "profiles": {
     "RefDataCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "run --regions --constellations --systems --progress"
+      "commandLineArgs": "run --regions --groups"
     }
   }
 }
