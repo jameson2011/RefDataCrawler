@@ -96,7 +96,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         // TODO: rationalise once single-system query done
     let onGetSystemIds (post: PostMessage) entityType =
         async {
-            let! systemIds = Esi.systemIds client // TODO: error checks
+            let! systemIds = Esi.systemIds client 
 
             let systemIds = systemIds 
                                 |> Seq.filter (fun s ->  [ 30005003; 30000142] |> Seq.contains s ) // TODO: temporary
@@ -185,7 +185,10 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                         |> Array.map string
                                         |> ActorMessage.StargateIds
                 
+                
+
                     let entities = [ planetIds; starIds; moonIds; beltIds; stationIds; stargateIds ]
+                                        |> List.filter (entityTypeIds >> List.isEmpty >> not)
                         
                     entities |> Seq.iter postBack
                     entities |> Seq.iter (fun e -> postDiscovered (entityTypeName e) (entityTypeIds e))
