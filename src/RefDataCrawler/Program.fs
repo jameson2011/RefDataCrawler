@@ -27,8 +27,8 @@ module Program =
             
             // TODO: subject to cmdline args
             [ 
-                ActorMessage.Regions; 
-                ActorMessage.Constellations; // TODO: temp
+                //ActorMessage.Regions; 
+                //ActorMessage.Constellations; // TODO: temp
                 ActorMessage.SolarSystems 
             ] |> Seq.iter crawler.Post
                         
@@ -37,12 +37,15 @@ module Program =
                 async {
                     let! status = crawlStatus.GetStatus()
 
-                    let positives = status      |> Seq.filter (fun s -> s.discovered > 0)
-                                                |> Array.ofSeq
-                    let completions = positives |> Array.filter (fun s -> s.completed >= s.discovered)
+                    if status.Length = 0 then
+                        return false
+                    else
+                        let positives = status      |> Seq.filter (fun s -> s.discovered > 0)
+                                                    |> Array.ofSeq
+                        let completions = positives |> Array.filter (fun s -> s.completed >= s.discovered)
                                                 
-                    // TODO: include accounting for error
-                    return completions.Length = status.Length
+                        // TODO: include accounting for error
+                        return completions.Length = status.Length
                 }
             
             let rec checkComplete() = 
@@ -62,7 +65,7 @@ module Program =
             let finish = System.DateTime.UtcNow
             let duration = finish - start
 
-            duration.TotalSeconds |> sprintf "Duration: %fsecs" |> Console.Out.WriteLine
+            duration.ToString() |> sprintf "Duration: %s" |> Console.Out.WriteLine
             
             cts.Cancel()
             

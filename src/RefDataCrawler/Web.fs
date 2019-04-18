@@ -178,6 +178,18 @@ module HttpResponses=
                 }
         }
 
+        
+    let private parseBadGateway resp = 
+        async {
+            return
+                {   Status = HttpStatus.BadGateway;
+                    Retry = (getWait resp);
+                    Message = "";
+                    ETag = None;
+                    ErrorLimit =  (getErrorLimitRemaining resp);
+                    ErrorWindow = (getErrorLimitReset resp);
+                }
+        }
     let private parseErrorResp resp = 
         async {
             return
@@ -206,30 +218,34 @@ module HttpResponses=
     let maxWaitTime (resps: seq<RefDataCrawler.WebResponse>)=
         let errorLimitRemaining r = (r.ErrorLimit |> Option.defaultValue 0)
         let defaultWait = TimeSpan.FromSeconds 5.
-        let errors = resps  |> Seq.filter (fun r -> errorLimitRemaining r <= 90) 
-                            |> Seq.map (fun r -> (errorLimitRemaining r, // TODO: remaining is not in use 
-                                                    r.ErrorWindow |> Option.defaultValue defaultWait  ))
-                            |> Array.ofSeq
+        let defaultLimit = 90
         
-        if errors.Length = 0 then
-            TimeSpan.Zero
-        else
-            errors  |> Seq.sortByDescending (fun (i,t) -> t)
-                    |> Seq.map snd
-                    |> Seq.head
+        let errors = resps  |> Seq.filter (fun r -> errorLimitRemaining r <= defaultLimit)
+                            |> Seq.map (fun r -> r.ErrorWindow |> Option.defaultValue defaultWait  )
+        
+        errors  |> Seq.sortDescending
+                |> Seq.tryHead
+                |> Option.defaultValue TimeSpan.Zero
             
         
     let response (client: HttpClient) (request: HttpRequestMessage) =
         async {
             use! resp = client.SendAsync(request) |> Async.AwaitTask
             
+            // TODO: temp
+            (*
+            if request.RequestUri.ToString().StartsWith("https://esi.evetech.net/v1/universe/moons/4") then
+                resp.StatusCode <- HttpStatusCode.BadGateway
+                *)
+
             let! result = match resp.StatusCode with
                             | HttpStatusCode.OK ->  parseOkResponse resp
                             | HttpStatusCode.NotModified -> parseNotModifiedResponse resp
                             | HttpStatusCode.Unauthorized -> parseUnauthResp resp
                             | HttpStatusCode.NotFound -> parseNotFoundResp resp 
                             | HttpStatusCode.TooManyRequests -> parseTooManyRequests resp
-                            | _ -> parseErrorResp resp // TODO: trap badgateway, add retry time
+                            | HttpStatusCode.BadGateway -> parseBadGateway resp
+                            | _ -> parseErrorResp resp // TODO:  add retry time?
 
             return result
             }

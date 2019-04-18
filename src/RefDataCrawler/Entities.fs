@@ -36,6 +36,7 @@ type HttpStatus =
     | TooManyRequests
     | Unauthorized
     | Error
+    | BadGateway
     | NotFound
     
 type WebResponse=

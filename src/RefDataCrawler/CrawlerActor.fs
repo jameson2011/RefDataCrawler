@@ -14,11 +14,11 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | _ -> defaultValue
     
     let postDiscovered entityType ids =
-        ids 
-            |> Seq.map string
-            |> Seq.map (fun s -> (entityType, s)) |> Seq.map ActorMessage.DiscoveredEntity |> Seq.iter crawlStatus
+        ids |> Seq.map (fun s -> (entityType, s)) 
+            |> Seq.map ActorMessage.DiscoveredEntity 
+            |> Seq.iter crawlStatus
 
-    let entityType msg =
+    let entityTypeName msg =
         match msg with
         | RegionIds _ ->        "region"
         | ConstellationIds _ -> "constellation"
@@ -79,6 +79,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         async {
             let! regionIds = Esi.regionIds client // TODO: error!
             
+            let regionIds = regionIds |> Seq.map string |> Array.ofSeq
             sprintf "Found %i regions" regionIds.Length |> ActorMessage.Info |> log
             regionIds |> Seq.map (fun id -> [| string id |] ) |> Seq.map ActorMessage.RegionIds |> Seq.iter post
             regionIds |> postDiscovered "region"
@@ -90,6 +91,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         async {
             let! constellationIds = Esi.constellationIds client // TODO: error!
             
+            let constellationIds = constellationIds |> Seq.map string |> Array.ofSeq
             sprintf "Found %i constellations" constellationIds.Length |> ActorMessage.Info |> log
             constellationIds |> Seq.map (fun id -> [| string id |] ) |> Seq.map ActorMessage.ConstellationIds |> Seq.iter post
             constellationIds |> postDiscovered "constellation"
@@ -102,7 +104,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
             let! systemIds = Esi.systemIds client // TODO: error!
 
             let systemIds = systemIds 
-                                |> Seq.filter (fun s -> s = 30005003) // TODO: temporary
+                                |> Seq.filter (fun s ->  [ 30005003; 30000142] |> Seq.contains s ) // TODO: temporary
+                                |> Seq.map string
                                 |> Array.ofSeq
             sprintf "Found %i systems" systemIds.Length |> ActorMessage.Info |> log
             systemIds |> Seq.map (string >> ActorMessage.SolarSystemId) |> Seq.iter post
@@ -130,7 +133,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
             // repost errors...
             if failResps.Length > 0 then
-                failResps  |> Seq.map (fun (id,r) -> sprintf "Error %s for %s %s" (string r.Status) entityType id )
+                failResps  |> Seq.map (fun (id,r) -> sprintf "Error [%s] for %s %s" (string r.Status) entityType id )
                            |> Seq.map ActorMessage.Error
                            |> Seq.iter log
 
@@ -139,14 +142,14 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                           |> entityTypeMsg entityType
                 newReqs |> postBack
 
-            let await = resps |> Seq.map snd |> HttpResponses.maxWaitTime
+            return resps |> Seq.map snd |> HttpResponses.maxWaitTime
             
-            return await
         }
         
-    let onSystemId (postBack: PostMessage) id = 
+        
+    let onSystemId (postBack: PostMessage) entityType id = 
         async {
-            id |> sprintf "Found system %s" |> ActorMessage.Info |> log
+            id |> sprintf "Found %s %s" entityType |> ActorMessage.Info |> log
 
             let! resp = id  |> Esi.systemRequest
                             |> HttpResponses.response client
@@ -157,7 +160,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                     let system = Esi.toSolarSystem resp
                     
                     let etag = resp.ETag |> Option.map (fun e -> e.tag) |> Option.defaultValue ""
-                    ("system", id, etag, resp.Message) |> ActorMessage.Entity |> writeEntity
+                    (entityType, id, etag, resp.Message) |> ActorMessage.Entity |> writeEntity
                     
                     
                     // get the stations, planets, moons, belts, etc...
@@ -189,20 +192,18 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                     let entities = [ planetIds; starIds; moonIds; beltIds; stationIds; stargateIds ]
                         
                     entities |> Seq.iter postBack
-                    entities |> Seq.collect (fun e ->  (entityTypeIds e) |> Seq.map (fun id -> (entityType e, id) ))
-                             |> Seq.map ActorMessage.DiscoveredEntity 
-                             |> Seq.iter crawlStatus
-
+                    entities |> Seq.iter (fun e -> postDiscovered (entityTypeName e) (entityTypeIds e))
+                                
                     TimeSpan.Zero
                 else
-                    // TODO: notify status of error, so tallies match... or put this back onto the queue. May want to think about retry attempts...
+                    sprintf "Error [%s] for %s %s" (string resp.Status) entityType id
+                           |> ActorMessage.Error
+                           |> log
+
                     id |> ActorMessage.SolarSystemId |> postBack
 
-                    // TODO: error! what if "OkNotModified"?
-                    // TODO: termination?
-                    match resp.Retry with
-                    | Some ts -> ts
-                    | _ -> TimeSpan.Zero
+                    [resp] |> HttpResponses.maxWaitTime 
+                    
                 
         }
 
@@ -213,7 +214,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         let rec getNext(wait: TimeSpan) = async {
                
             if(wait.TotalMilliseconds > 0.) then
-              wait.TotalMilliseconds |> sprintf "Throttling back for %f msec..." |> ActorMessage.Info |> log
+              wait.ToString() |> sprintf "Throttling back for %s..." |> ActorMessage.Info |> log
               do! Async.Sleep(int wait.TotalMilliseconds)
             
             let! inMsg = inbox.Receive()
@@ -223,20 +224,20 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                     | ServerStatus ->           return! onGetServerStatus()
 
                                     | Regions ->                return! (onGetRegionIds post)
-                                    | RegionIds ids ->          return! (onEntities post (entityType inMsg) Esi.regionRequest ids )
+                                    | RegionIds ids ->          return! (onEntities post (entityTypeName inMsg) Esi.regionRequest ids )
 
                                     | Constellations ->         return! (onGetConstellationIds post)
-                                    | ConstellationIds ids ->   return! (onEntities post (entityType inMsg) Esi.constellationRequest ids )
+                                    | ConstellationIds ids ->   return! (onEntities post (entityTypeName inMsg) Esi.constellationRequest ids )
 
                                     | SolarSystems ->           return! (onGetSystemIds post)
-                                    | SolarSystemId id ->       return! (onSystemId post id)
+                                    | SolarSystemId id ->       return! (onSystemId post (entityTypeName inMsg) id)
                                             
-                                    | PlanetIds ids ->          return! (onEntities post (entityType inMsg) Esi.planetRequest ids)
-                                    | AsteroidBeltIds ids ->    return! (onEntities post (entityType inMsg) Esi.asteroidBeltRequest ids)
-                                    | MoonIds ids ->            return! (onEntities post (entityType inMsg) Esi.moonRequest ids)
-                                    | StarIds ids ->            return! (onEntities post (entityType inMsg) Esi.starRequest ids)
-                                    | StationIds ids ->         return! (onEntities post (entityType inMsg) Esi.stationRequest ids)
-                                    | StargateIds ids ->        return! (onEntities post (entityType inMsg) Esi.stargateRequest ids)
+                                    | PlanetIds ids ->          return! (onEntities post (entityTypeName inMsg) Esi.planetRequest ids)
+                                    | AsteroidBeltIds ids ->    return! (onEntities post (entityTypeName inMsg) Esi.asteroidBeltRequest ids)
+                                    | MoonIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.moonRequest ids)
+                                    | StarIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.starRequest ids)
+                                    | StationIds ids ->         return! (onEntities post (entityTypeName inMsg) Esi.stationRequest ids)
+                                    | StargateIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.stargateRequest ids)
 
                                     | _ -> return TimeSpan.Zero
                                     }
