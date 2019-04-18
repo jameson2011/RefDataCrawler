@@ -35,15 +35,9 @@ module Program =
             let config = crawlerConfig app
 
             let logger = LogPublishActor()
-
-            "Starting" |> ActorMessage.Info |> logger.Post
-            
-                        
             let crawlStatus = CrawlStatusActor(logger.Post)
             let writer = EntityWriterActor(logger.Post, crawlStatus.Post, config)
             let crawler = CrawlerActor(logger.Post, crawlStatus.Post, writer.Post, config)
-            
-            config |> seedingActorMessages |> Seq.iter crawler.Post
                         
             let rec checkComplete() = 
                 async {
@@ -53,16 +47,16 @@ module Program =
                     
                     return! match status.isComplete with
                             | false -> checkComplete()
-                            | true -> async { return ignore 0 }
-                            
+                            | true -> async { return ignore 0 }               
                     }
 
+            "Starting" |> ActorMessage.Info |> logger.Post
+            
+            config |> seedingActorMessages |> Seq.iter crawler.Post
+            
             do! checkComplete()
             
-            let finish = System.DateTime.UtcNow
-            let duration = finish - start
-
-            duration.ToString() |> sprintf "Duration: %s" |> Console.Out.WriteLine
+            (System.DateTime.UtcNow - start).ToString() |> sprintf "Duration: %s" |> Console.Out.WriteLine
             
             cts.Cancel()
             
