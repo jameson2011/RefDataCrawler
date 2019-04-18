@@ -52,6 +52,9 @@ type WebResponse=
 type CrawlerConfig = 
     {
         targetPath: string;
+        crawlRegions: bool;
+        crawlConstellations: bool;
+        crawlSystems: bool;
     } with
     static member TargetPathDefault = @".\data\"
 

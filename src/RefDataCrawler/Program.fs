@@ -7,8 +7,26 @@ module Program =
     
     let private crawlerConfig (app: CommandLine.App) =
         { 
-            CrawlerConfig.targetPath = CommandLine.getTargetFolderValue app 
+            CrawlerConfig.targetPath = CommandLine.getTargetFolderValue app;
+                          crawlRegions = CommandLine.getRegionsValue app;
+                          crawlConstellations = CommandLine.getConstellationsValue app;
+                          crawlSystems = CommandLine.getSystemsValue app
         }
+
+    let private seedingActorMessages config =
+        seq {
+                if config.crawlRegions then
+                    yield ActorMessage.Regions
+
+                if config.crawlConstellations then
+                    yield ActorMessage.Constellations
+
+                if config.crawlSystems then 
+                    yield ActorMessage.SolarSystems
+            } 
+            |> Array.ofSeq 
+            |> (fun xs -> if xs.Length = 0 then [| ActorMessage.Regions; ActorMessage.Constellations; ActorMessage.SolarSystems |] else xs )
+
 
     let private runCrawler (app: CommandLine.App) (cts: CancellationTokenSource)=
         async {
@@ -25,13 +43,7 @@ module Program =
             let writer = EntityWriterActor(logger.Post, crawlStatus.Post, config)
             let crawler = CrawlerActor(logger.Post, crawlStatus.Post, writer.Post, config)
             
-            // TODO: subject to cmdline args
-            [ 
-                ActorMessage.Regions; 
-                ActorMessage.Constellations; // TODO: temp
-                ActorMessage.SolarSystems 
-            ] |> Seq.iter crawler.Post
-                        
+            config |> seedingActorMessages |> Seq.iter crawler.Post
                         
             let rec checkComplete() = 
                 async {

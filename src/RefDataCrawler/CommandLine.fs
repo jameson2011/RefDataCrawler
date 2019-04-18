@@ -10,12 +10,25 @@ module CommandLine=
     type Command = App -> bool
 
     let private targetFolderArg = "dest"
-    
-    
+    let private regionsArg = "regions"
+    let private constellationsArg = "constellations"
+    let private systemsArg = "systems"
+
+    let private longestArg = 
+        [ targetFolderArg; regionsArg; constellationsArg; systemsArg; ]
+        |> Seq.map String.length
+        |> Seq.max
+
     let addSingleOption (name: string) fullName desc (app:App)=
         let pad = String(' ', max 0 (4 - name.Length) )
         let tag = sprintf "-%s%s | --%s" name pad fullName
         app.Option(tag, desc,CommandLineUtils.CommandOptionType.SingleValue) |> ignore
+        app
+
+    let addSwitchOption (name: string) fullName desc (app:App)=
+        let pad = String(' ', max 0 (longestArg - name.Length) )
+        let tag = sprintf "-%s%s | --%s" name pad fullName
+        app.Option(tag, desc,CommandLineUtils.CommandOptionType.NoValue) |> ignore
         app
 
     
@@ -27,6 +40,12 @@ module CommandLine=
         match (getOption shortName app) with
         | Some x when x.HasValue() -> x.Value() |> Some
         | _ -> None 
+
+    let getSwitchOption (shortName: string) (app:App)=
+        match (getOption shortName app) with
+        | Some x -> x.Values.Count > 0
+        | _ -> false
+
 
     let setHelp(app: App) =
         app.HelpOption("-? | -h | --help") |> ignore
@@ -43,8 +62,18 @@ module CommandLine=
         app.Description <- desc
         app
 
-    let addTargetFolderArg =              addSingleOption targetFolderArg targetFolderArg "The target folder"
-    let getTargetFolderValue app =        getStringOption targetFolderArg app |> Option.defaultValue CrawlerConfig.TargetPathDefault
+    let addTargetFolderArg =                addSingleOption targetFolderArg targetFolderArg "The target folder"
+    let getTargetFolderValue app =          getStringOption targetFolderArg app |> Option.defaultValue CrawlerConfig.TargetPathDefault
+
+    let addRegionsArg =                     addSwitchOption regionsArg regionsArg "Crawl Regions"
+    let getRegionsValue app =               getSwitchOption regionsArg app
+    
+    let addConstellationsArg =              addSwitchOption constellationsArg constellationsArg "Crawl Constellations"
+    let getConstellationsValue app =        getSwitchOption constellationsArg app
+    
+    let addSystemsArg =                     addSwitchOption systemsArg systemsArg "Crawl Systems"
+    let getSystemsValue app =               getSwitchOption systemsArg app
+    
 
 
     let createApp() =
@@ -59,6 +88,9 @@ module CommandLine=
     let addRun cmd (app: App) =
         let f = setDesc "Run the crawler" 
                         >> addTargetFolderArg
+                        >> addRegionsArg
+                        >> addConstellationsArg
+                        >> addSystemsArg
                         >> setAction cmd
         app.Command("run", (composeAppPipe f)) |> ignore
         app
