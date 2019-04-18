@@ -27,9 +27,9 @@ module Program =
             
             // TODO: subject to cmdline args
             [ 
-                //ActorMessage.Regions; 
-                //ActorMessage.Constellations; // TODO: temp
-                ActorMessage.SolarSystems 
+                ActorMessage.Regions; 
+                ActorMessage.Constellations; // TODO: temp
+                //ActorMessage.SolarSystems 
             ] |> Seq.iter crawler.Post
                         
 

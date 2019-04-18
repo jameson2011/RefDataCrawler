@@ -234,12 +234,6 @@ module HttpResponses=
         async {
             use! resp = client.SendAsync(request) |> Async.AwaitTask
             
-            // TODO: temp
-            (*
-            if request.RequestUri.ToString().StartsWith("https://esi.evetech.net/v1/universe/moons/4") then
-                resp.StatusCode <- HttpStatusCode.BadGateway
-                *)
-
             let! result = match resp.StatusCode with
                             | HttpStatusCode.OK ->  parseOkResponse resp
                             | HttpStatusCode.NotModified -> parseNotModifiedResponse resp
@@ -247,7 +241,7 @@ module HttpResponses=
                             | HttpStatusCode.NotFound -> parseNotFoundResp resp 
                             | HttpStatusCode.TooManyRequests -> parseTooManyRequests resp
                             | HttpStatusCode.BadGateway -> parseBadGateway resp
-                            | _ -> parseErrorResp resp // TODO:  add retry time?
+                            | _ -> parseErrorResp resp 
 
             return result
             }
