@@ -65,14 +65,19 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
     let onGetServerStatus () =
         async {
+            let entityType = "server_status"
+            let entityId = ""
+            
+            postDiscovered entityType [ entityId ]
+
             let! serverStatus = Esi.serverStatus client
             // get the ESI server status
             // if different -> continue
             let msg = serverStatus |> Option.map (fun ss -> { ServerVersion.version = string ss.ServerVersion }
                                                                 |> Newtonsoft.Json.JsonConvert.SerializeObject
-                                                                |> (fun j -> ActorMessage.Entity ("server", "", "", j)) )
+                                                                |> (fun j -> ActorMessage.Entity (entityType, entityId, "", j)) )
             match msg with
-            | Some m -> writeEntity m // TODO: include "discovery" first 
+            | Some m -> writeEntity m
             | _ -> ignore 0
 
             return TimeSpan.Zero
