@@ -20,8 +20,11 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
     let entityTypeName msg =
         match msg with
+        | Regions 
         | RegionIds _ ->        "region"
+        | Constellations
         | ConstellationIds _ -> "constellation"
+        | SolarSystems
         | SolarSystemId _ ->    "system"
         | PlanetIds _ ->        "planet"
         | AsteroidBeltIds _ ->  "belt"
@@ -75,41 +78,33 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
             return TimeSpan.Zero
         }
 
-    let onGetRegionIds (post: PostMessage)=
-        async {
-            let! regionIds = Esi.regionIds client // TODO: error!
+    
+    let onGetEntityIds (post: PostMessage) entityType (getIds: HttpClient -> Async<int[]>) (msg: string[] -> ActorMessage)=
+        async { 
             
-            let regionIds = regionIds |> Seq.map string |> Array.ofSeq
-            sprintf "Found %i regions" regionIds.Length |> ActorMessage.Info |> log
-            regionIds |> Seq.map (fun id -> [| string id |] ) |> Seq.map ActorMessage.RegionIds |> Seq.iter post
-            regionIds |> postDiscovered "region"
+            let! entityIds = getIds client // TODO: error checks
+                                |> Async.map (fun ids -> ids |> Seq.map string |> Array.ofSeq)
+
+            sprintf "Found %i %s(s)" entityIds.Length entityType |> ActorMessage.Info |> log
+
+            entityIds |> Seq.map (fun id -> [| string id |] ) |> Seq.map msg |> Seq.iter post
+            entityIds |> postDiscovered entityType
 
             return TimeSpan.Zero
         }
-
-    let onGetConstellationIds (post: PostMessage)=
+        
+        // TODO: rationalise once single-system query done
+    let onGetSystemIds (post: PostMessage) entityType =
         async {
-            let! constellationIds = Esi.constellationIds client // TODO: error!
-            
-            let constellationIds = constellationIds |> Seq.map string |> Array.ofSeq
-            sprintf "Found %i constellations" constellationIds.Length |> ActorMessage.Info |> log
-            constellationIds |> Seq.map (fun id -> [| string id |] ) |> Seq.map ActorMessage.ConstellationIds |> Seq.iter post
-            constellationIds |> postDiscovered "constellation"
-
-            return TimeSpan.Zero
-        }
-
-    let onGetSystemIds (post: PostMessage) =
-        async {
-            let! systemIds = Esi.systemIds client // TODO: error!
+            let! systemIds = Esi.systemIds client // TODO: error checks
 
             let systemIds = systemIds 
                                 |> Seq.filter (fun s ->  [ 30005003; 30000142] |> Seq.contains s ) // TODO: temporary
                                 |> Seq.map string
                                 |> Array.ofSeq
-            sprintf "Found %i systems" systemIds.Length |> ActorMessage.Info |> log
+            sprintf "Found %i %s(s)" systemIds.Length entityType |> ActorMessage.Info |> log
             systemIds |> Seq.map (string >> ActorMessage.SolarSystemId) |> Seq.iter post
-            systemIds |> postDiscovered "system"
+            systemIds |> postDiscovered entityType
 
             return TimeSpan.Zero
         }
@@ -164,6 +159,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                     
                     
                     // get the stations, planets, moons, belts, etc...
+                    // TODO: if any are empty, ignore
                     let planetIds = (fun () -> system.Planets) |> safe [||]
                                         |> Array.map (fun x -> string x.PlanetId) 
                                         |> ActorMessage.PlanetIds
@@ -223,13 +219,13 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                     match inMsg with
                                     | ServerStatus ->           return! onGetServerStatus()
 
-                                    | Regions ->                return! (onGetRegionIds post)
+                                    | Regions ->                return! (onGetEntityIds post (entityTypeName inMsg) Esi.regionIds ActorMessage.RegionIds)
                                     | RegionIds ids ->          return! (onEntities post (entityTypeName inMsg) Esi.regionRequest ids )
 
-                                    | Constellations ->         return! (onGetConstellationIds post)
+                                    | Constellations ->         return! (onGetEntityIds post (entityTypeName inMsg) Esi.constellationIds ActorMessage.ConstellationIds)
                                     | ConstellationIds ids ->   return! (onEntities post (entityTypeName inMsg) Esi.constellationRequest ids )
 
-                                    | SolarSystems ->           return! (onGetSystemIds post)
+                                    | SolarSystems ->           return! (onGetSystemIds post (entityTypeName inMsg))
                                     | SolarSystemId id ->       return! (onSystemId post (entityTypeName inMsg) id)
                                             
                                     | PlanetIds ids ->          return! (onEntities post (entityTypeName inMsg) Esi.planetRequest ids)

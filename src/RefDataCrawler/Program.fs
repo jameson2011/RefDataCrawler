@@ -29,7 +29,7 @@ module Program =
             [ 
                 ActorMessage.Regions; 
                 ActorMessage.Constellations; // TODO: temp
-                //ActorMessage.SolarSystems 
+                ActorMessage.SolarSystems 
             ] |> Seq.iter crawler.Post
                         
 
