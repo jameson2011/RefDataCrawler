@@ -55,6 +55,9 @@ type CrawlerConfig =
         crawlRegions: bool;
         crawlConstellations: bool;
         crawlSystems: bool;
+
+        verboseLogging: bool;
+        showProgressTicker: bool;
     } with
     static member TargetPathDefault = @".\data\"
 

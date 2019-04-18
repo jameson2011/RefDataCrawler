@@ -13,6 +13,8 @@ module CommandLine=
     let private regionsArg = "regions"
     let private constellationsArg = "constellations"
     let private systemsArg = "systems"
+    let private verboseArg = "verbose"
+    let private progressTickerArg = "progress"
 
     let private longestArg = 
         [ targetFolderArg; regionsArg; constellationsArg; systemsArg; ]
@@ -74,7 +76,12 @@ module CommandLine=
     let addSystemsArg =                     addSwitchOption systemsArg systemsArg "Crawl Systems"
     let getSystemsValue app =               getSwitchOption systemsArg app
     
-
+    let addVerboseArg =                     addSwitchOption verboseArg verboseArg "Verbose logging"
+    let getVerboseValue app =               getSwitchOption verboseArg app
+    
+    let addProgressTickerArg =              addSwitchOption progressTickerArg progressTickerArg "Show progress ticker"
+    let getProgressTickerValue app =        getSwitchOption progressTickerArg app
+    
 
     let createApp() =
         let app = new App(false)
@@ -91,6 +98,8 @@ module CommandLine=
                         >> addRegionsArg
                         >> addConstellationsArg
                         >> addSystemsArg
+                        >> addVerboseArg
+                        >> addProgressTickerArg
                         >> setAction cmd
         app.Command("run", (composeAppPipe f)) |> ignore
         app

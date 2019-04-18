@@ -6,12 +6,21 @@ module Program =
     open System.Threading
     
     let private crawlerConfig (app: CommandLine.App) =
-        { 
-            CrawlerConfig.targetPath = CommandLine.getTargetFolderValue app;
+        let verboseLogging = CommandLine.getVerboseValue app;
+        let showProgressTicker = CommandLine.getProgressTickerValue app;
+        
+        let verboseLogging = if showProgressTicker then false
+                             else true
+
+        { CrawlerConfig.targetPath = CommandLine.getTargetFolderValue app;
                           crawlRegions = CommandLine.getRegionsValue app;
                           crawlConstellations = CommandLine.getConstellationsValue app;
-                          crawlSystems = CommandLine.getSystemsValue app
+                          crawlSystems = CommandLine.getSystemsValue app;
+
+                          verboseLogging = verboseLogging;
+                          showProgressTicker = showProgressTicker;
         }
+        
 
     let private seedingActorMessages config =
         seq {
@@ -27,6 +36,31 @@ module Program =
             |> Array.ofSeq 
             |> (fun xs -> if xs.Length = 0 then [| ActorMessage.Regions; ActorMessage.Constellations; ActorMessage.SolarSystems |] else xs )
 
+    
+    let private progress (status: CrawlProgress) = 
+        let discovered = status.entityTypes |> Seq.map (fun et -> et.discovered) |> Seq.sum
+        let completed = status.entityTypes |> Seq.map (fun et -> et.completed) |> Seq.sum
+        let pc = if discovered <> 0 then (float completed / float discovered)  * 100.
+                 else 0.
+
+        let line = sprintf "\rDiscovered: %i Completed: %i : %.0f%% complete.  " discovered completed pc
+
+        line
+        
+
+    let rec private checkComplete(config: CrawlerConfig) (crawlStatus: CrawlStatusActor) = 
+        async {
+            do! Async.Sleep(1000)
+
+            let! status = crawlStatus.GetStatus()
+                    
+            if config.showProgressTicker then
+                status |> progress |> Console.Out.Write
+
+            return! match status.isComplete with
+                    | false -> checkComplete config crawlStatus
+                    | true -> async { return ignore 0 }               
+            }
 
     let private runCrawler (app: CommandLine.App) (cts: CancellationTokenSource)=
         async {
@@ -34,29 +68,18 @@ module Program =
 
             let config = crawlerConfig app
 
-            let logger = LogPublishActor()
+            let logger = LogPublishActor(config)
             let crawlStatus = CrawlStatusActor(logger.Post)
             let writer = EntityWriterActor(logger.Post, crawlStatus.Post, config)
             let crawler = CrawlerActor(logger.Post, crawlStatus.Post, writer.Post, config)
                         
-            let rec checkComplete() = 
-                async {
-                    do! Async.Sleep(1000)
-
-                    let! status = crawlStatus.GetStatus()
-                    
-                    return! match status.isComplete with
-                            | false -> checkComplete()
-                            | true -> async { return ignore 0 }               
-                    }
-
             "Starting" |> ActorMessage.Info |> logger.Post
             
             config |> seedingActorMessages |> Seq.iter crawler.Post
             
-            do! checkComplete()
+            do! checkComplete config crawlStatus
             
-            (System.DateTime.UtcNow - start).ToString() |> sprintf "Duration: %s" |> Console.Out.WriteLine
+            (System.DateTime.UtcNow - start).ToString() |> sprintf "\r\nDuration: %s" |> Console.Out.WriteLine
             
             cts.Cancel()
             

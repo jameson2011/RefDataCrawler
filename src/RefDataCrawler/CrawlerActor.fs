@@ -106,7 +106,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
             let! systemIds = Esi.systemIds client 
 
             let systemIds = systemIds 
-                                //|> Seq.filter (fun s ->  [ 30005003; 30000142] |> Seq.contains s ) // TODO: temporary
+                                //|> Seq.filter (fun s ->  [ 30005003; 30000142; 30003072] |> Seq.contains s ) // TODO: temporary
                                 |> Seq.map string
                                 |> Array.ofSeq
             sprintf "Found %i %s(s)" systemIds.Length entityType |> ActorMessage.Info |> log
