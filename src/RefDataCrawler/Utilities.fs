@@ -2,6 +2,11 @@
 
 open System
 
+
+[<AutoOpen>]
+module Operators=
+    let (<-->) f g = (fun x -> [ f; g; ] |> List.iter (fun h -> h x ))
+
 module DateTimeOffset=
 
     let toUtc (x: DateTimeOffset) = x.UtcDateTime

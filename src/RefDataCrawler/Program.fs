@@ -43,7 +43,7 @@ module Program =
         let pc = if discovered <> 0 then (float completed / float discovered)  * 100.
                  else 0.
 
-        let line = sprintf "\rDiscovered: %i Completed: %i : %.0f%% complete.  " discovered completed pc
+        let line = sprintf "\rDiscovered: %i Completed: %i Errors: %i : %.0f%% complete.  " discovered completed status.errorCount pc
 
         line
         

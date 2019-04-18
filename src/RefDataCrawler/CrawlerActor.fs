@@ -137,7 +137,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
             if failResps.Length > 0 then
                 failResps  |> Seq.map (fun (id,r) -> sprintf "Error [%s] for %s %s" (string r.Status) entityType id )
                            |> Seq.map ActorMessage.Error
-                           |> Seq.iter log
+                           |> Seq.iter (log <--> crawlStatus)
 
                 let newReqs = failResps   |> Seq.map fst
                                           |> Array.ofSeq
@@ -166,7 +166,6 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                     
                     
                     // get the stations, planets, moons, belts, etc...
-                    // TODO: if any are empty, ignore
                     let planetIds = (fun () -> system.Planets) |> safe [||]
                                         |> Array.map (fun x -> string x.PlanetId) 
                                         |> ActorMessage.PlanetIds
@@ -204,7 +203,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                 else
                     sprintf "Error [%s] for %s %s" (string resp.Status) entityType id
                            |> ActorMessage.Error
-                           |> log
+                           |> (log <--> crawlStatus)
 
                     id |> ActorMessage.SolarSystemId |> postBack
 
@@ -220,8 +219,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         let rec getNext(wait: TimeSpan) = async {
                
             if(wait.TotalMilliseconds > 0.) then
-              wait.ToString() |> sprintf "Throttling back for %s..." |> ActorMessage.Info |> log
-              do! Async.Sleep(int wait.TotalMilliseconds)
+                wait.ToString() |> sprintf "Throttling back for %s..." |> ActorMessage.Info |> log
+                do! Async.Sleep(int wait.TotalMilliseconds)
             
             let! inMsg = inbox.Receive()
 
@@ -246,7 +245,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                     | StargateIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.stargateRequest ids)
 
                                     | _ -> return TimeSpan.Zero
-                                    }
+                                  }
             return! getNext(nextWait)
         }
         

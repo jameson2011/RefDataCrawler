@@ -71,6 +71,7 @@ type CrawlEntityTypeProgress =
 
 type CrawlProgress= 
     {
-        isComplete: bool;
+        isComplete:  bool;
+        errorCount:  int;
         entityTypes: CrawlEntityTypeProgress[];
     }
