@@ -86,8 +86,11 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                 |> Async.map (fun ids -> ids |> Seq.map string |> Array.ofSeq)
 
             sprintf "Found %i %s(s)" entityIds.Length entityType |> ActorMessage.Info |> log
-
-            entityIds |> Seq.map (fun id -> [| string id |] ) |> Seq.map msg |> Seq.iter post
+                        
+            entityIds |> Seq.map string 
+                      |> Seq.chunkBySize 10
+                      |> Seq.map msg 
+                      |> Seq.iter post
             entityIds |> postDiscovered entityType
 
             return TimeSpan.Zero
