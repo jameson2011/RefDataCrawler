@@ -5,9 +5,13 @@ open Newtonsoft.Json
 
 type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: CrawlerConfig)=
     
-    
-    let execPath = System.Reflection.Assembly.GetEntryAssembly().Location |> Io.folder
-    let rootPath = Io.path execPath config.targetPath
+    let rootPath =  if Io.isRooted config.targetPath then
+                        config.targetPath
+                    else
+                        let execPath = System.Reflection.Assembly.GetEntryAssembly().Location |> Io.folder
+                        Io.path execPath config.targetPath
+
+
     // TODO: delete old folder if necessary...
     do Io.createFolder rootPath |> Async.RunSynchronously
     

@@ -8,6 +8,8 @@ module Io=
 
     let path root subFolder = Path.Combine(root, subFolder)
 
+    let isRooted (path: string) = Path.IsPathRooted(path)
+
     let createFolder path =
         async {
             let di = Directory.CreateDirectory(path)
