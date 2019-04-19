@@ -125,8 +125,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
                                                 TimeSpan.Zero
                     | Choice2Of2 errorResp ->   postbackEntityTypeError post actorMsg errorResp
-                                                // TODO: find wait
-                                                TimeSpan.Zero
+                                                [errorResp] |> HttpResponses.maxWaitTime 
+                                                
         }
         
         
@@ -144,8 +144,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                                 systemIds |> postDiscovered entityType
                                                 TimeSpan.Zero
                     | Choice2Of2 errorResp ->   postbackEntityTypeError post ActorMessage.SolarSystems errorResp
-                                                // TODO: find wait
-                                                TimeSpan.Zero
+                                                [errorResp] |> HttpResponses.maxWaitTime 
         }
         
 
