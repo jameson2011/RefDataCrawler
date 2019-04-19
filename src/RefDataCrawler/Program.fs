@@ -66,10 +66,25 @@ module Program =
         let completed = status.entityTypes |> Seq.map (fun et -> et.completed) |> Seq.sum
         let pc = if discovered <> 0 then (float completed / float discovered)  * 100.
                  else 0.
+                 
 
-        let line = sprintf "\rDiscovered: %i Completed: %i Errors: %i : %.0f%% complete.  " discovered completed status.errorCount pc
+        "\rDiscovered: " |> ConsoleUtils.white 
+        discovered |> string |> ConsoleUtils.blue
+        " Completed: " |> ConsoleUtils.white
+        completed |> string |> ConsoleUtils.green
+        " Errors: " |> ConsoleUtils.white
+        status.errorCount |> string |> ConsoleUtils.red
+        " : " |> ConsoleUtils.white
+        pc |> sprintf "%.0f%%" |> ConsoleUtils.blue
+        " complete.  " |> ConsoleUtils.white
 
-        line
+
+    let private progressReport (status: CrawlProgress) = 
+        
+        let result = status.entityTypes |> Seq.map (fun et -> sprintf "Type: %s Discovered %i Completed %i" et.name et.discovered et.completed)
+                                        |> String.concatenate Environment.NewLine
+
+        result
         
 
     let rec private checkComplete(config: CrawlerConfig) (crawlStatus: CrawlStatusActor) = 
@@ -79,8 +94,8 @@ module Program =
             let! status = crawlStatus.GetStatus()
                     
             if config.showProgressTicker then
-                status |> progress |> Console.Out.Write
-
+                status |> progress 
+                
             return! match status.isComplete with
                     | false -> checkComplete config crawlStatus
                     | true -> async { return ignore 0 }               
@@ -103,6 +118,11 @@ module Program =
             
             do! checkComplete config crawlStatus
             
+            let! status = crawlStatus.GetStatus()
+            status |> progressReport |> ActorMessage.Info |> logger.Post
+            
+            // TODO: wait for logger to clear...
+
             (System.DateTime.UtcNow - start).ToString() |> sprintf "\r\nDuration: %s" |> Console.Out.WriteLine
             
             cts.Cancel()

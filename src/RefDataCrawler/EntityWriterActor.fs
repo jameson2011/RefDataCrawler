@@ -11,8 +11,7 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
                         let execPath = System.Reflection.Assembly.GetEntryAssembly().Location |> Io.folder
                         Io.path execPath config.targetPath
 
-
-    // TODO: delete old folder if necessary...
+                        
     do Io.createFolder rootPath |> Async.RunSynchronously
     
     let createFolder path = 
