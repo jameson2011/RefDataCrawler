@@ -19,35 +19,40 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
             do! path |> Io.createFolder 
             return path
         }
+        
+    let postCompleted (entityType, id) =
+        ActorMessage.FinishedEntity (entityType, id) |> crawlStatus
 
-    let path = Io.path rootPath
+    let entityFolder entityType = entityType |> Io.path rootPath
 
-    let postDiscovered entityType ids =
-        ids 
-            |> Seq.map string
-            |> Seq.map (fun s -> (entityType, s)) |> Seq.map ActorMessage.FinishedEntity |> Seq.iter crawlStatus
+    let dataFileName (entityType, id) = sprintf "%s.%s.data.json" entityType id 
 
+    let metaFileName (entityType, id) = sprintf "%s.%s.meta.json" entityType id 
 
-    let write (t, id, etag, json) =
+    let writeEntity (entityType, id, etag, json) =
         async {
-            let! folder = t |> path |> createFolder 
-
+            let entityId = (entityType,id)
+            try
+                let! folder = entityType |> entityFolder |> createFolder 
+                
+                let dataFilePath = entityId |> dataFileName |> Io.path folder
+                let metaFilePath = entityId |> metaFileName |> Io.path folder
+                            
+                do! Io.writeJson dataFilePath json
             
-            let meta = { EntityMetadata.id = id;
-                                        entityType = t;
-                                        captured = DateTimeOffset.UtcNow;
-                                        etag = etag} |> JsonConvert.SerializeObject
+                let meta = { EntityMetadata.id = id;
+                                            entityType = entityType;
+                                            captured = DateTimeOffset.UtcNow;
+                                            etag = etag} |> JsonConvert.SerializeObject
+                        
+                do! Io.writeJson metaFilePath meta
             
-            let metaFilePath = sprintf "%s.%s.meta.json" t id |> Io.path folder
-            do! Io.writeJson metaFilePath meta
-           
-            let filePath = sprintf "%s.%s.data.json" t id |> Io.path folder
+                entityId |> postCompleted 
 
-            do! Io.writeJson filePath json
+                sprintf "Entity %s %s written" entityType id |> ActorMessage.Info |> log
             
-            [ id ] |> postDiscovered t
-
-            sprintf "Entity %s %s written" t id |> ActorMessage.Info |> log
+            // TODO: error retry... and closure.
+            with e -> e.Message |> sprintf "ERROR in %s: %s" typedefof<EntityWriterActor>.Name |> ActorMessage.Error |> log
         }
 
 
@@ -58,7 +63,7 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
             let! inMsg = inbox.Receive()
 
             match inMsg with
-            | Entity (t, id, etag, json) -> return! (write (t, id, etag, json))
+            | Entity (t, id, etag, json) -> return! (writeEntity (t, id, etag, json))
             | _ -> 0 |> ignore
 
             return! getNext()
