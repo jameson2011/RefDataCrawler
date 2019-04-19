@@ -124,7 +124,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                                             |> Seq.map msgIds 
                                                             |> Seq.iter post
                                                 entityIds   |> postDiscovered entityType
-
+                                                // TODO: delete unlisted ones
                                                 TimeSpan.Zero
                     | Choice2Of2 errorResp ->   postbackEntityTypeError post actorMsg errorResp
                                                 [errorResp] |> HttpResponses.maxWaitTime 
@@ -138,12 +138,14 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
             return match resp with
                     | Choice1Of2 systemIds ->   let systemIds = systemIds 
+                                                                    //|> Seq.take 500 // TODO: temp
                                                                     //|> Seq.filter (fun s ->  [ 30005003; 30000142; 30003072] |> Seq.contains s ) // TODO: temporary
                                                                     |> Seq.map string
                                                                     |> Array.ofSeq
                                                 sprintf "Found %i %s(s)" systemIds.Length entityType |> ActorMessage.Info |> log
                                                 systemIds |> Seq.map (string >> ActorMessage.SolarSystemId) |> Seq.iter post
                                                 systemIds |> postDiscovered entityType
+                                                // TODO: delete unlisted ones
                                                 TimeSpan.Zero
                     | Choice2Of2 errorResp ->   postbackEntityTypeError post ActorMessage.SolarSystems errorResp
                                                 [errorResp] |> HttpResponses.maxWaitTime 
