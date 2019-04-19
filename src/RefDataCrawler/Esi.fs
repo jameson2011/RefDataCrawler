@@ -76,6 +76,18 @@ module Esi=
     let categoryRequest id =
         id |> sprintf "v1/universe/categories/%s/" |> getUrl
 
+    let dogmaAttributeIdsRequest() =
+        "v1/dogma/attributes/" |> getUrl
+
+    let dogmaAttributeRequest id =
+        id |> sprintf "v1/dogma/attributes/%s/" |> getUrl
+
+    let dogmaEffectIdsRequest() =
+        "v1/dogma/effects/" |> getUrl
+
+    let dogmaEffectRequest id =
+        id |> sprintf "v2/dogma/effects/%s/" |> getUrl
+
     let toServerStatus resp = 
         resp.Message |> ServerStatus.Parse
         
@@ -85,6 +97,14 @@ module Esi=
             let! resp = serverStatusRequest() |> HttpResponses.response client
 
             return resp |> mapOkSome toServerStatus
+        }
+
+    let private getEntityIds client (req)=
+        async {
+        
+            let! resp = req() |> HttpResponses.response client
+            
+            return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
 
     let regionIds client =
@@ -113,6 +133,8 @@ module Esi=
             return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
 
+
+
     let rec private getPagedEntityIds client (req: int -> HttpRequestMessage) page (ids: int[]) =
         async {
                 
@@ -137,6 +159,10 @@ module Esi=
             
             return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
+
+    let dogmaAttributeIds client = getEntityIds client dogmaAttributeIdsRequest
+
+    let dogmaEffectIds client = getEntityIds client dogmaEffectIdsRequest
 
     let toConstellation (resp: WebResponse)=
         Constellation.Parse(resp.Message)

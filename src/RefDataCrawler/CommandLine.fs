@@ -16,6 +16,8 @@ module CommandLine=
     let private groupsArg = "groups"
     let private categoriesArg = "categories"
     let private typesArg = "types"
+    let private dogmaAttributesArg = "dogma_attributes"
+    let private dogmaEffectsArg = "dogma_effects"
     let private verboseArg = "verbose"
     let private progressTickerArg = "progress"
 
@@ -90,6 +92,13 @@ module CommandLine=
     let addTypesArg =                       addSwitchOption typesArg typesArg "Crawl Types"
     let getTypesValue app =                 getSwitchOption typesArg app
 
+    let addDogmaAttributesArg =             addSwitchOption dogmaAttributesArg dogmaAttributesArg "Crawl Dogma Attributes"
+    let getDogmaAttributesValue app =       getSwitchOption dogmaAttributesArg app
+
+    let addDogmaEffectsArg =                addSwitchOption dogmaEffectsArg dogmaEffectsArg "Crawl Dogma Effects"
+    let getDogmaEffectsValue app =          getSwitchOption dogmaEffectsArg app
+
+
     let addVerboseArg =                     addSwitchOption verboseArg verboseArg "Verbose logging"
     let getVerboseValue app =               getSwitchOption verboseArg app
     
@@ -115,6 +124,8 @@ module CommandLine=
                         >> addGroupsArg
                         >> addCategoriesArg
                         >> addTypesArg
+                        >> addDogmaAttributesArg
+                        >> addDogmaEffectsArg
                         >> addVerboseArg
                         >> addProgressTickerArg
                         >> setAction cmd

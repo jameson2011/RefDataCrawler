@@ -59,6 +59,8 @@ type CrawlerConfig =
         crawlGroups: bool;
         crawlCategories: bool;
         crawlTypes: bool;
+        crawlDogmaAttributes: bool;
+        crawlDogmaEffects: bool;
         verboseLogging: bool;
         showProgressTicker: bool;
     } with

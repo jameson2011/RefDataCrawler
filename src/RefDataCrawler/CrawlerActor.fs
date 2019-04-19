@@ -38,7 +38,11 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | TypeIds _ ->          "type"
         | Categories
         | CategoryIds _ ->      "category"
-        | _ -> ""
+        | DogmaAttributes
+        | DogmaAttributeIds _ -> "dogma_attribute"
+        | DogmaEffects
+        | DogmaEffectIds _ ->   "dogma_effect"
+        | _ -> invalidOp "Unknown type"
         
 
     let entityTypeIds msg =
@@ -54,6 +58,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | GroupIds ids
         | CategoryIds ids
         | TypeIds ids
+        | DogmaAttributeIds ids
+        | DogmaEffectIds ids
         | StargateIds ids ->    ids |> List.ofSeq
         | _ ->                  []
 
@@ -72,6 +78,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | "groups" ->   GroupIds
         | "category" -> CategoryIds
         | "type" ->     TypeIds
+        | "dogma_attribute" -> DogmaAttributeIds
+        | "dogma_effect" -> DogmaEffectIds
         | _ -> invalidOp "unknown type" 
         
 
@@ -261,9 +269,12 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                     | GroupIds ids ->           return! (onEntities post (entityTypeName inMsg) Esi.groupRequest ids)
                                     | Categories ->             return! (onGetEntityIds post (entityTypeName inMsg) Esi.categoryIds ActorMessage.CategoryIds)
                                     | CategoryIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.categoryRequest ids)
-                                    | Types ->                 return! (onGetEntityIds post (entityTypeName inMsg) Esi.typeIds ActorMessage.TypeIds)
-                                    | TypeIds ids ->           return! (onEntities post (entityTypeName inMsg) Esi.typeRequest ids)
-                                    
+                                    | Types ->                  return! (onGetEntityIds post (entityTypeName inMsg) Esi.typeIds ActorMessage.TypeIds)
+                                    | TypeIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.typeRequest ids)
+                                    | DogmaAttributes ->        return! (onGetEntityIds post (entityTypeName inMsg) Esi.dogmaAttributeIds ActorMessage.DogmaAttributeIds)
+                                    | DogmaAttributeIds ids ->  return! (onEntities post (entityTypeName inMsg) Esi.dogmaAttributeRequest ids)
+                                    | DogmaEffects ->           return! (onGetEntityIds post (entityTypeName inMsg) Esi.dogmaEffectIds ActorMessage.DogmaEffectIds)
+                                    | DogmaEffectIds ids ->     return! (onEntities post (entityTypeName inMsg) Esi.dogmaEffectRequest ids)
                                     | _ -> return TimeSpan.Zero
                                   }
             return! getNext(nextWait)

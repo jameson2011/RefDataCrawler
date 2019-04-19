@@ -32,6 +32,10 @@ type ActorMessage =
 | CategoryIds of string[]
 | Types
 | TypeIds of string[]
+| DogmaAttributes
+| DogmaAttributeIds of string[]
+| DogmaEffects
+| DogmaEffectIds of string[]
 
 | DiscoveredEntity of string * string
 | Entity of string * string * string * string

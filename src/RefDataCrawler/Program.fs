@@ -19,12 +19,15 @@ module Program =
                           crawlGroups = CommandLine.getGroupsValue app;
                           crawlCategories = CommandLine.getCategoriesValue app;
                           crawlTypes = CommandLine.getTypesValue app;
+                          crawlDogmaAttributes = CommandLine.getDogmaAttributesValue app;
+                          crawlDogmaEffects = CommandLine.getDogmaEffectsValue app;
                           verboseLogging = verboseLogging;
                           showProgressTicker = showProgressTicker;
         }
         
 
     let private seedingActorMessages config =
+        // TODO: tidy up...
         seq {
                 if config.crawlRegions then
                     yield ActorMessage.Regions
@@ -43,11 +46,18 @@ module Program =
 
                 if config.crawlTypes then
                     yield ActorMessage.Types
+
+                if config.crawlDogmaAttributes then
+                    yield ActorMessage.DogmaAttributes
+
+                if config.crawlDogmaEffects then    
+                    yield ActorMessage.DogmaEffects
             } 
             |> Array.ofSeq 
             |> (fun xs ->   if xs.Length = 0 then 
                                 [|  ActorMessage.Regions; ActorMessage.Constellations; ActorMessage.SolarSystems; 
-                                    ActorMessage.Groups; ActorMessage.Categories; ActorMessage.Types; |] 
+                                    ActorMessage.Groups; ActorMessage.Categories; ActorMessage.Types; 
+                                    ActorMessage.DogmaAttributes; ActorMessage.DogmaEffects |] 
                             else xs )
 
     
