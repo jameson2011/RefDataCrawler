@@ -57,7 +57,8 @@ type CrawlerConfig =
         crawlConstellations: bool;
         crawlSystems: bool;
         crawlGroups: bool;
-
+        crawlCategories: bool;
+        crawlTypes: bool;
         verboseLogging: bool;
         showProgressTicker: bool;
     } with

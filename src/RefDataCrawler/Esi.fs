@@ -63,6 +63,13 @@ module Esi=
     let groupRequest id =
         id |> sprintf "v1/universe/groups/%s/" |> getUrl
 
+    
+    let categoryIdsRequest() =
+        "v1/universe/categories/" |> getUrl
+
+    let categoryRequest id =
+        id |> sprintf "v1/universe/categories/%s/" |> getUrl
+
     let toServerStatus resp = 
         resp.Message |> ServerStatus.Parse
         
@@ -114,6 +121,16 @@ module Esi=
                         | xs -> Array.concat [ids;xs] |> getGroupIds (page+1) 
                 }
         getGroupIds 1 [||] 
+
+    
+    let categoryIds client =
+        async {
+        
+            let! resp = categoryIdsRequest() 
+                            |> HttpResponses.response client
+            
+            return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
+        }
 
     let toConstellation (resp: WebResponse)=
         Constellation.Parse(resp.Message)

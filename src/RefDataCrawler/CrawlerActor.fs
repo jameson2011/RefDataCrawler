@@ -34,6 +34,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | StargateIds _ ->      "stargate"
         | Groups 
         | GroupIds _ ->         "group"
+        | Categories
+        | CategoryIds _ ->      "category"
         | _ -> ""
         
 
@@ -48,6 +50,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | StarIds ids 
         | StationIds ids 
         | GroupIds ids
+        | CategoryIds ids
         | StargateIds ids ->    ids |> List.ofSeq
         | _ ->                  []
 
@@ -64,6 +67,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | "constellation" -> ConstellationIds
         
         | "groups" ->   GroupIds
+        | "category" -> CategoryIds
 
         | _ -> invalidOp "unknown type" 
         
@@ -252,6 +256,9 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
                                     | Groups ->                 return! (onGetEntityIds post (entityTypeName inMsg) Esi.groupIds ActorMessage.GroupIds)
                                     | GroupIds ids ->           return! (onEntities post (entityTypeName inMsg) Esi.groupRequest ids)
+                                    | Categories ->             return! (onGetEntityIds post (entityTypeName inMsg) Esi.categoryIds ActorMessage.CategoryIds)
+                                    | CategoryIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.categoryRequest ids)
+
 
                                     | _ -> return TimeSpan.Zero
                                   }

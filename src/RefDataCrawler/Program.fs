@@ -17,6 +17,8 @@ module Program =
                           crawlConstellations = CommandLine.getConstellationsValue app;
                           crawlSystems = CommandLine.getSystemsValue app;
                           crawlGroups = CommandLine.getGroupsValue app;
+                          crawlCategories = CommandLine.getCategoriesValue app;
+                          crawlTypes = CommandLine.getTypesValue app;
                           verboseLogging = verboseLogging;
                           showProgressTicker = showProgressTicker;
         }
@@ -35,11 +37,16 @@ module Program =
 
                 if config.crawlGroups then  
                     yield ActorMessage.Groups
+
+                if config.crawlCategories then
+                    yield ActorMessage.Categories
+
+                // TODO: types
             } 
             |> Array.ofSeq 
             |> (fun xs ->   if xs.Length = 0 then 
                                 [|  ActorMessage.Regions; ActorMessage.Constellations; ActorMessage.SolarSystems; 
-                                    ActorMessage.Groups |] 
+                                    ActorMessage.Groups; ActorMessage.Categories; |] 
                             else xs )
 
     

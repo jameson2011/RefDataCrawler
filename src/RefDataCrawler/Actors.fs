@@ -28,7 +28,8 @@ type ActorMessage =
 
 | Groups
 | GroupIds of string[]
-
+| Categories
+| CategoryIds of string[]
 
 | DiscoveredEntity of string * string
 | Entity of string * string * string * string

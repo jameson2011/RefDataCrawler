@@ -14,7 +14,8 @@ module CommandLine=
     let private constellationsArg = "constellations"
     let private systemsArg = "systems"
     let private groupsArg = "groups"
-
+    let private categoriesArg = "categories"
+    let private typesArg = "types"
     let private verboseArg = "verbose"
     let private progressTickerArg = "progress"
 
@@ -83,6 +84,12 @@ module CommandLine=
     let addGroupsArg =                      addSwitchOption groupsArg groupsArg "Crawl Groups"
     let getGroupsValue app =                getSwitchOption groupsArg app
 
+    let addCategoriesArg =                  addSwitchOption categoriesArg categoriesArg "Crawl Categories"
+    let getCategoriesValue app =            getSwitchOption categoriesArg app
+
+    let addTypesArg =                       addSwitchOption typesArg typesArg "Crawl Types"
+    let getTypesValue app =                 getSwitchOption typesArg app
+
     let addVerboseArg =                     addSwitchOption verboseArg verboseArg "Verbose logging"
     let getVerboseValue app =               getSwitchOption verboseArg app
     
@@ -106,6 +113,8 @@ module CommandLine=
                         >> addConstellationsArg
                         >> addSystemsArg
                         >> addGroupsArg
+                        >> addCategoriesArg
+                        >> addTypesArg
                         >> addVerboseArg
                         >> addProgressTickerArg
                         >> setAction cmd
