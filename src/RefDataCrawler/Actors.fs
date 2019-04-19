@@ -30,6 +30,8 @@ type ActorMessage =
 | GroupIds of string[]
 | Categories
 | CategoryIds of string[]
+| Types
+| TypeIds of string[]
 
 | DiscoveredEntity of string * string
 | Entity of string * string * string * string

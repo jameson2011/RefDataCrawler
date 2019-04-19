@@ -2,6 +2,7 @@
 
 
 module Esi=
+    open System.Net.Http
 
     
     let private getUrl = HttpRoutes.url >> HttpRequests.get
@@ -59,10 +60,15 @@ module Esi=
         
     let groupIdsRequest page =
         getUrlQuery "v1/universe/groups/" [ ("page", string page) ]
-        
+            
     let groupRequest id =
         id |> sprintf "v1/universe/groups/%s/" |> getUrl
 
+    let typeIdsRequest page = 
+        getUrlQuery "v1/universe/types/" [ ("page", string page) ]
+
+    let typeRequest id =
+        id |> sprintf "v3/universe/types/%s/" |> getUrl
     
     let categoryIdsRequest() =
         "v1/universe/categories/" |> getUrl
@@ -107,21 +113,21 @@ module Esi=
             return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
 
-    let groupIds client =
-        let rec getGroupIds page (ids: int[]) =
-            async {
+    let rec private getPagedEntityIds client (req: int -> HttpRequestMessage) page (ids: int[]) =
+        async {
                 
-                let! resp = groupIdsRequest page
-                                |> HttpResponses.response client
+            let! resp = req page |> HttpResponses.response client
             
-                let pageIds = resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]> ) 
+            let pageIds = resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]> ) 
                 
-                return! match pageIds with
-                        | [||] -> async { return ids }
-                        | xs -> Array.concat [ids;xs] |> getGroupIds (page+1) 
-                }
-        getGroupIds 1 [||] 
+            return! match pageIds with
+                    | [||] -> async { return ids }
+                    | xs -> Array.concat [ids;xs] |> getPagedEntityIds client req (page+1) 
+            }
 
+    let groupIds client = getPagedEntityIds client groupIdsRequest 1 [||] 
+
+    let typeIds client = getPagedEntityIds client typeIdsRequest 1 [||] 
     
     let categoryIds client =
         async {

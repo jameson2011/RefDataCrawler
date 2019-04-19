@@ -41,12 +41,13 @@ module Program =
                 if config.crawlCategories then
                     yield ActorMessage.Categories
 
-                // TODO: types
+                if config.crawlTypes then
+                    yield ActorMessage.Types
             } 
             |> Array.ofSeq 
             |> (fun xs ->   if xs.Length = 0 then 
                                 [|  ActorMessage.Regions; ActorMessage.Constellations; ActorMessage.SolarSystems; 
-                                    ActorMessage.Groups; ActorMessage.Categories; |] 
+                                    ActorMessage.Groups; ActorMessage.Categories; ActorMessage.Types; |] 
                             else xs )
 
     
