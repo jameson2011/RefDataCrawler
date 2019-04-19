@@ -26,40 +26,25 @@ module Program =
                           maxErrors = CommandLine.getMaxErrorsValue app;
         }
         
-
+    
     let private seedingActorMessages config =
-        // TODO: tidy up...
-        seq {
-                if config.crawlRegions then
-                    yield ActorMessage.Regions
-
-                if config.crawlConstellations then
-                    yield ActorMessage.Constellations
-
-                if config.crawlSystems then 
-                    yield ActorMessage.SolarSystems
-
-                if config.crawlGroups then  
-                    yield ActorMessage.Groups
-
-                if config.crawlCategories then
-                    yield ActorMessage.Categories
-
-                if config.crawlTypes then
-                    yield ActorMessage.Types
-
-                if config.crawlDogmaAttributes then
-                    yield ActorMessage.DogmaAttributes
-
-                if config.crawlDogmaEffects then    
-                    yield ActorMessage.DogmaEffects
-            } 
-            |> Array.ofSeq 
-            |> (fun xs ->   if xs.Length = 0 then 
-                                [|  ActorMessage.Regions; ActorMessage.Constellations; ActorMessage.SolarSystems; 
-                                    ActorMessage.Groups; ActorMessage.Categories; ActorMessage.Types; 
-                                    ActorMessage.DogmaAttributes; ActorMessage.DogmaEffects |] 
-                            else xs )
+        let maps = [| 
+                        ((fun c -> c.crawlRegions), ActorMessage.Regions);
+                        ((fun c -> c.crawlConstellations), ActorMessage.Constellations);
+                        ((fun c -> c.crawlSystems), ActorMessage.SolarSystems);
+                        ((fun c -> c.crawlGroups), ActorMessage.Groups);
+                        ((fun c -> c.crawlCategories), ActorMessage.Categories);
+                        ((fun c -> c.crawlTypes), ActorMessage.Types);
+                        ((fun c -> c.crawlDogmaAttributes), ActorMessage.DogmaAttributes);
+                        ((fun c -> c.crawlDogmaEffects), ActorMessage.DogmaEffects);
+                    |]
+        
+        let results = maps |> Seq.filter (fun (f,_) -> f config) 
+                           |> Seq.map snd
+                           |> Array.ofSeq
+        if results.Length = 0 then  maps |> Array.map snd
+        else                        results
+        
 
     
     let private progress (status: CrawlProgress) = 
