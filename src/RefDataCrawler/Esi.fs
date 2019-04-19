@@ -8,15 +8,18 @@ module Esi=
     let private getUrl = HttpRoutes.url >> HttpRequests.get
     let private getUrlQuery path query = HttpRoutes.urlQuery path query |> HttpRequests.get
 
+    // TODO: bad!
     let private mapOkSome mapper resp =
         match resp.Status with
         | HttpStatus.OK -> mapper resp |> Some
         | _ -> None
 
-    let private mapOkArray mapper resp =
+    
+    let private mapRespArray mapper resp =
         match resp.Status with
-        | HttpStatus.OK -> mapper resp
-        | _ -> [||]
+        | HttpStatus.OK ->  mapper resp |> Choice1Of2
+        | _ ->              resp |> Choice2Of2
+
 
 
     let serverStatusRequest() =
@@ -101,25 +104,23 @@ module Esi=
 
     let private getEntityIds client req=
         async {
-        
-            // TODO: error handling! Retry?
             let! resp = req() |> HttpResponses.response client
             
-            return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
+            return resp |> mapRespArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
 
     
     let rec private getPagedEntityIds client (req: int -> HttpRequestMessage) page (ids: int[]) =
-        async {
-                
-            // TODO: error handling! Retry?
+        async { 
             let! resp = req page |> HttpResponses.response client
             
-            let pageIds = resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]> ) 
+            let pageResp = resp |> mapRespArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]> ) 
                 
-            return! match pageIds with
-                    | [||] -> async { return ids }
-                    | xs -> Array.concat [ids;xs] |> getPagedEntityIds client req (page+1) 
+            return! match pageResp with
+                    | Choice1Of2 xs -> match xs with
+                                        | [||] -> async { return Choice1Of2 ids}
+                                        | xs -> Array.concat [ids;xs] |> getPagedEntityIds client req (page+1) 
+                    | Choice2Of2 _ -> async { return pageResp }
             }
 
 

@@ -39,7 +39,6 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | DogmaEffectIds _ ->   "dogma_effect"
         | _ -> invalidOp "Unknown type"
         
-
     let entityTypeIds msg =
         match msg with
         | SolarSystemId id  ->  [ id ]
@@ -76,8 +75,17 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | "dogma_attribute" -> DogmaAttributeIds
         | "dogma_effect" -> DogmaEffectIds
         | _ -> invalidOp "unknown type" 
-        
 
+    
+    
+    let postbackEntityTypeError post (msg: ActorMessage) resp =
+        let entityType = entityTypeName msg
+        sprintf "Error [%s] for %s" (string resp.Status) entityType
+            |> ActorMessage.Error
+            |> (log <--> crawlStatus)   
+        msg |> post |> ignore
+
+        
     let onGetServerStatus () =
         async {
             let entityType = "server_status"
@@ -101,36 +109,43 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         }
 
     
-    let onGetEntityIds (post: PostMessage) entityType (getIds: HttpClient -> Async<int[]>) (msg: string[] -> ActorMessage)=
+    let onGetEntityIds (post: PostMessage) (actorMsg: ActorMessage) (getIds) (msgIds: string[] -> ActorMessage)=
         async { 
-            
-            let! entityIds = getIds client // TODO: error checks
-                                |> Async.map (Seq.map string >> Array.ofSeq)
-
-            sprintf "Found %i %s(s)" entityIds.Length entityType |> ActorMessage.Info |> log
+            let entityType = entityTypeName actorMsg
+            let! resp = getIds client
+            return match resp with
+                    | Choice1Of2 entityIds ->   let entityIds = entityIds |> Seq.map string |> Array.ofSeq
+                                                
+                                                sprintf "Found %i %s(s)" entityIds.Length entityType |> ActorMessage.Info |> log
                         
-            entityIds |> Seq.chunkBySize 10
-                      |> Seq.map msg 
-                      |> Seq.iter post
-            entityIds |> postDiscovered entityType
+                                                entityIds   |> Seq.chunkBySize 10
+                                                            |> Seq.map msgIds 
+                                                            |> Seq.iter post
+                                                entityIds   |> postDiscovered entityType
 
-            return TimeSpan.Zero
+                                                TimeSpan.Zero
+                    | Choice2Of2 errorResp ->   postbackEntityTypeError post actorMsg errorResp
+                                                // TODO: find wait
+                                                TimeSpan.Zero
         }
         
-        // TODO: rationalise once single-system query done
+        
     let onGetSystemIds (post: PostMessage) entityType =
         async {
-            let! systemIds = Esi.systemIds client 
+            let! resp = Esi.systemIds client 
 
-            let systemIds = systemIds 
-                                //|> Seq.filter (fun s ->  [ 30005003; 30000142; 30003072] |> Seq.contains s ) // TODO: temporary
-                                |> Seq.map string
-                                |> Array.ofSeq
-            sprintf "Found %i %s(s)" systemIds.Length entityType |> ActorMessage.Info |> log
-            systemIds |> Seq.map (string >> ActorMessage.SolarSystemId) |> Seq.iter post
-            systemIds |> postDiscovered entityType
-
-            return TimeSpan.Zero
+            return match resp with
+                    | Choice1Of2 systemIds ->   let systemIds = systemIds 
+                                                                    //|> Seq.filter (fun s ->  [ 30005003; 30000142; 30003072] |> Seq.contains s ) // TODO: temporary
+                                                                    |> Seq.map string
+                                                                    |> Array.ofSeq
+                                                sprintf "Found %i %s(s)" systemIds.Length entityType |> ActorMessage.Info |> log
+                                                systemIds |> Seq.map (string >> ActorMessage.SolarSystemId) |> Seq.iter post
+                                                systemIds |> postDiscovered entityType
+                                                TimeSpan.Zero
+                    | Choice2Of2 errorResp ->   postbackEntityTypeError post ActorMessage.SolarSystems errorResp
+                                                // TODO: find wait
+                                                TimeSpan.Zero
         }
         
 
@@ -246,10 +261,10 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                     match inMsg with
                                     | ServerStatus ->           return! onGetServerStatus()
 
-                                    | Regions ->                return! (onGetEntityIds post (entityTypeName inMsg) Esi.regionIds ActorMessage.RegionIds)
+                                    | Regions ->                return! (onGetEntityIds post (inMsg) Esi.regionIds ActorMessage.RegionIds)
                                     | RegionIds ids ->          return! (onEntities post (entityTypeName inMsg) Esi.regionRequest ids )
 
-                                    | Constellations ->         return! (onGetEntityIds post (entityTypeName inMsg) Esi.constellationIds ActorMessage.ConstellationIds)
+                                    | Constellations ->         return! (onGetEntityIds post (inMsg) Esi.constellationIds ActorMessage.ConstellationIds)
                                     | ConstellationIds ids ->   return! (onEntities post (entityTypeName inMsg) Esi.constellationRequest ids )
 
                                     | SolarSystems ->           return! (onGetSystemIds post (entityTypeName inMsg))
@@ -262,15 +277,15 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                     | StationIds ids ->         return! (onEntities post (entityTypeName inMsg) Esi.stationRequest ids)
                                     | StargateIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.stargateRequest ids)
 
-                                    | Groups ->                 return! (onGetEntityIds post (entityTypeName inMsg) Esi.groupIds ActorMessage.GroupIds)
+                                    | Groups ->                 return! (onGetEntityIds post (inMsg) Esi.groupIds ActorMessage.GroupIds)
                                     | GroupIds ids ->           return! (onEntities post (entityTypeName inMsg) Esi.groupRequest ids)
-                                    | Categories ->             return! (onGetEntityIds post (entityTypeName inMsg) Esi.categoryIds ActorMessage.CategoryIds)
+                                    | Categories ->             return! (onGetEntityIds post (inMsg) Esi.categoryIds ActorMessage.CategoryIds)
                                     | CategoryIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.categoryRequest ids)
-                                    | Types ->                  return! (onGetEntityIds post (entityTypeName inMsg) Esi.typeIds ActorMessage.TypeIds)
+                                    | Types ->                  return! (onGetEntityIds post (inMsg) Esi.typeIds ActorMessage.TypeIds)
                                     | TypeIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.typeRequest ids)
-                                    | DogmaAttributes ->        return! (onGetEntityIds post (entityTypeName inMsg) Esi.dogmaAttributeIds ActorMessage.DogmaAttributeIds)
+                                    | DogmaAttributes ->        return! (onGetEntityIds post (inMsg) Esi.dogmaAttributeIds ActorMessage.DogmaAttributeIds)
                                     | DogmaAttributeIds ids ->  return! (onEntities post (entityTypeName inMsg) Esi.dogmaAttributeRequest ids)
-                                    | DogmaEffects ->           return! (onGetEntityIds post (entityTypeName inMsg) Esi.dogmaEffectIds ActorMessage.DogmaEffectIds)
+                                    | DogmaEffects ->           return! (onGetEntityIds post (inMsg) Esi.dogmaEffectIds ActorMessage.DogmaEffectIds)
                                     | DogmaEffectIds ids ->     return! (onEntities post (entityTypeName inMsg) Esi.dogmaEffectRequest ids)
                                     | _ -> return TimeSpan.Zero
                                   }
