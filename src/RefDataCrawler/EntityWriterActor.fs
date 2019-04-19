@@ -34,7 +34,6 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
             async {
                 let entityId = (entityType,id)
                 try
-                    invalidOp "testing write retry" // TODO:  temp
                     let! folder = entityType |> entityFolder |> createFolder 
                 
                     let dataFilePath = entityId |> dataFileName |> Io.path folder
