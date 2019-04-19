@@ -80,12 +80,29 @@ module Program =
         " complete.  " |> ConsoleUtils.white
 
 
-    let private progressReport (status: CrawlProgress) = 
+    let private completionReport (duration: TimeSpan) (status: CrawlProgress) = 
         
-        let result = status.entityTypes |> Seq.map (fun et -> sprintf "Type: %s Discovered %i Completed %i" et.name et.discovered et.completed)
-                                        |> String.concatenate Environment.NewLine
+        let lines = seq {
+                        yield ""
+                        if status.isComplete then
+                            yield "Complete"
+                        else if status.isErrorLimited then
+                            yield "Failed by error limiting"
 
-        result
+                        yield duration.ToString() |> sprintf "Duration: %s"
+
+                        yield! status.entityTypes 
+                                |> Seq.map (fun et -> sprintf "Type: %s Discovered %i Completed %i" et.name et.discovered et.completed)
+
+                        yield (status.entityTypes |> Seq.map (fun et -> et.discovered) |> Seq.sum |> sprintf "Total discovered: %i")
+
+                        yield (status.entityTypes |> Seq.map (fun et -> et.completed) |> Seq.sum |> sprintf "Total completed: %i")
+
+                        yield (status.errorCount |> sprintf "Errors: %i")
+                    }
+                             
+        lines |> String.concatenate Environment.NewLine
+        
         
 
     let rec private waitComplete(config: CrawlerConfig) (crawlStatus: CrawlStatusActor) = 
@@ -99,8 +116,8 @@ module Program =
                 
             return! match status.isComplete, status.isErrorLimited with
                     | false, false -> waitComplete config crawlStatus
-                    | false, true ->  async { return false } // TODO: return a msg???
-                    | true, _ ->      async { return true }               
+                    | false, true 
+                    | true, _ ->      async { return status }               
             }
 
     let private runCrawler (app: CommandLine.App) (cts: CancellationTokenSource)=
@@ -118,18 +135,17 @@ module Program =
             
             config |> seedingActorMessages |> Seq.iter crawler.Post
             
-            let! completeStatus = waitComplete config crawlStatus
+            let! completedStatus = waitComplete config crawlStatus
             
-            let! status = crawlStatus.GetStatus()
-            status |> progressReport |> ActorMessage.Info |> logger.Post
             
-            // TODO: wait for logger to clear...
-
-            if completeStatus then
-                (System.DateTime.UtcNow - start).ToString() |> sprintf "\r\nComplete. Duration: %s" |> ConsoleUtils.info
-            else
-                (System.DateTime.UtcNow - start).ToString() |> sprintf "\r\nFailed. Duration: %s" |> ConsoleUtils.error
-
+            let msg,console =   if completedStatus.isComplete then  (ActorMessage.Info, ConsoleUtils.info)
+                                else                                (ActorMessage.Error, ConsoleUtils.error)    
+            completedStatus |> completionReport (System.DateTime.UtcNow - start)
+                            |> (    if config.showProgressTicker then   ( ( msg >> logger.Post ) <--> console )
+                                    else                                ( msg >> logger.Post ) )
+            
+            do! logger.Ping()
+            
             cts.Cancel()
             
             return 0 |> ignore

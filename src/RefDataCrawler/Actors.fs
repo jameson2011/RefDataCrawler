@@ -41,6 +41,7 @@ type ActorMessage =
 | Entity of string * string * string * string
 | FinishedEntity of string * string
 | CrawlStatus of AsyncReplyChannel<CrawlProgress>
+| Ping of AsyncReplyChannel<unit>
 
 type PostMessage= ActorMessage -> unit
 type PostString = string -> unit

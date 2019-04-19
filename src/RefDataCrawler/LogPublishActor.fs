@@ -38,6 +38,7 @@ type LogPublishActor(config: CrawlerConfig, configFile: string)=
                 | Exception (source, ex) -> logException source ex               
                 | Info msg ->               msg |> logInfo
                 | Trace msg ->              msg |> logTrace
+                | Ping ch ->                ignore 0 |> ch.Reply 
                 | _ ->                      ignore 0
             with e -> onException e
             return! getNext()            
@@ -51,4 +52,8 @@ type LogPublishActor(config: CrawlerConfig, configFile: string)=
     new(config: CrawlerConfig) = LogPublishActor(config, "log4net.config")
     
     member __.Post(msg: ActorMessage) = pipe.Post msg
+
+    member __.Ping() = 
+        pipe.PostAndAsyncReply (fun ch -> ActorMessage.Ping ch)
+        
 
