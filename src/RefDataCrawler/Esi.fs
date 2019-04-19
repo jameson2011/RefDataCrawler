@@ -99,45 +99,20 @@ module Esi=
             return resp |> mapOkSome toServerStatus
         }
 
-    let private getEntityIds client (req)=
+    let private getEntityIds client req=
         async {
         
+            // TODO: error handling! Retry?
             let! resp = req() |> HttpResponses.response client
             
             return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
         }
 
-    let regionIds client =
-        async {
-        
-            let! resp = regionIdsRequest() |> HttpResponses.response client
-            
-            return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]> )
-        }
-        
     
-    let constellationIds client =
-        async {
-            let! resp = constellationIdsRequest() 
-                            |> HttpResponses.response client
-            
-            return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
-        }
-
-    let systemIds client =
-        async {
-        
-            let! resp = systemIdsRequest() 
-                            |> HttpResponses.response client
-            
-            return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
-        }
-
-
-
     let rec private getPagedEntityIds client (req: int -> HttpRequestMessage) page (ids: int[]) =
         async {
                 
+            // TODO: error handling! Retry?
             let! resp = req page |> HttpResponses.response client
             
             let pageIds = resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]> ) 
@@ -147,19 +122,20 @@ module Esi=
                     | xs -> Array.concat [ids;xs] |> getPagedEntityIds client req (page+1) 
             }
 
+
+    let regionIds client = getEntityIds client regionIdsRequest
+        
+    let constellationIds client = getEntityIds client constellationIdsRequest
+
+    let systemIds client = getEntityIds client systemIdsRequest
+
+
     let groupIds client = getPagedEntityIds client groupIdsRequest 1 [||] 
 
     let typeIds client = getPagedEntityIds client typeIdsRequest 1 [||] 
     
-    let categoryIds client =
-        async {
-        
-            let! resp = categoryIdsRequest() 
-                            |> HttpResponses.response client
-            
-            return resp |> mapOkArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]>)
-        }
-
+    let categoryIds client = getEntityIds client categoryIdsRequest
+    
     let dogmaAttributeIds client = getEntityIds client dogmaAttributeIdsRequest
 
     let dogmaEffectIds client = getEntityIds client dogmaEffectIdsRequest
