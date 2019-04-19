@@ -30,31 +30,36 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
     let metaFileName (entityType, id) = sprintf "%s.%s.meta.json" entityType id 
 
     let writeEntity (entityType, id, etag, json) =
-        async {
-            let entityId = (entityType,id)
-            try
-                let! folder = entityType |> entityFolder |> createFolder 
+        let rec writeEntityRecurse() = 
+            async {
+                let entityId = (entityType,id)
+                try
+                    invalidOp "testing write retry" // TODO:  temp
+                    let! folder = entityType |> entityFolder |> createFolder 
                 
-                let dataFilePath = entityId |> dataFileName |> Io.path folder
-                let metaFilePath = entityId |> metaFileName |> Io.path folder
+                    let dataFilePath = entityId |> dataFileName |> Io.path folder
+                    let metaFilePath = entityId |> metaFileName |> Io.path folder
                             
-                do! Io.writeJson dataFilePath json
+                    do! Io.writeJson dataFilePath json
             
-                let meta = { EntityMetadata.id = id;
-                                            entityType = entityType;
-                                            captured = DateTimeOffset.UtcNow;
-                                            etag = etag} |> JsonConvert.SerializeObject
+                    let meta = { EntityMetadata.id = id;
+                                                entityType = entityType;
+                                                captured = DateTimeOffset.UtcNow;
+                                                etag = etag} |> JsonConvert.SerializeObject
                         
-                do! Io.writeJson metaFilePath meta
+                    do! Io.writeJson metaFilePath meta
             
-                entityId |> postCompleted 
+                    entityId |> postCompleted 
 
-                sprintf "Entity %s %s written" entityType id |> ActorMessage.Info |> log
-            
-            // TODO: error retry... and closure.
-            with e -> e.Message |> sprintf "ERROR in %s: %s" typedefof<EntityWriterActor>.Name |> ActorMessage.Error |> log
-        }
+                    sprintf "Entity %s %s written" entityType id |> ActorMessage.Info |> log
 
+                
+                with e ->   e.Message |> sprintf "ERROR in %s [%s %s]: %s" typedefof<EntityWriterActor>.Name entityType id |> ActorMessage.Error 
+                                |> ( log <--> crawlStatus)
+                            do! Async.Sleep(1000)
+                            return! writeEntityRecurse()
+            }
+        writeEntityRecurse() 
 
     let pipe = MessageInbox.Start(fun inbox -> 
         
