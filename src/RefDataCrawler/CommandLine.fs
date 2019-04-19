@@ -20,16 +20,17 @@ module CommandLine=
     let private dogmaEffectsArg = "dogma_effects"
     let private verboseArg = "verbose"
     let private progressTickerArg = "progress"
+    let private errorLimitArg = "maxerrors"
 
     let private longestArg = 
         [ targetFolderArg; regionsArg; constellationsArg; systemsArg; 
-            groupsArg; 
-            verboseArg; progressTickerArg;  ]
+            groupsArg; categoriesArg; typesArg; dogmaAttributesArg; dogmaEffectsArg;
+            verboseArg; progressTickerArg; errorLimitArg; ]
         |> Seq.map String.length
         |> Seq.max
 
     let addSingleOption (name: string) fullName desc (app:App)=
-        let pad = String(' ', max 0 (4 - name.Length) )
+        let pad = String(' ', max 0 (longestArg - name.Length) )
         let tag = sprintf "-%s%s | --%s" name pad fullName
         app.Option(tag, desc,CommandLineUtils.CommandOptionType.SingleValue) |> ignore
         app
@@ -49,6 +50,12 @@ module CommandLine=
         match (getOption shortName app) with
         | Some x when x.HasValue() -> x.Value() |> Some
         | _ -> None 
+
+    let getIntOption shortName (app:App) =
+        match (getOption shortName app) with
+        | Some x when x.HasValue() -> x.Value() |> System.Int32.Parse |> Some
+        | _ -> None 
+
 
     let getSwitchOption (shortName: string) (app:App)=
         match (getOption shortName app) with
@@ -105,6 +112,8 @@ module CommandLine=
     let addProgressTickerArg =              addSwitchOption progressTickerArg progressTickerArg "Show progress ticker"
     let getProgressTickerValue app =        getSwitchOption progressTickerArg app
     
+    let addMaxErrorsArg =                   addSingleOption errorLimitArg errorLimitArg "Maximum errors tolerated"
+    let getMaxErrorsValue app =             getIntOption errorLimitArg app |> Option.defaultValue 0
 
     let createApp() =
         let app = new App(false)
@@ -128,6 +137,7 @@ module CommandLine=
                         >> addDogmaEffectsArg
                         >> addVerboseArg
                         >> addProgressTickerArg
+                        >> addMaxErrorsArg
                         >> setAction cmd
         app.Command("run", (composeAppPipe f)) |> ignore
         app

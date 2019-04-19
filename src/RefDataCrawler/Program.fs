@@ -23,6 +23,7 @@ module Program =
                           crawlDogmaEffects = CommandLine.getDogmaEffectsValue app;
                           verboseLogging = verboseLogging;
                           showProgressTicker = showProgressTicker;
+                          maxErrors = CommandLine.getMaxErrorsValue app;
         }
         
 
@@ -87,7 +88,7 @@ module Program =
         result
         
 
-    let rec private checkComplete(config: CrawlerConfig) (crawlStatus: CrawlStatusActor) = 
+    let rec private waitComplete(config: CrawlerConfig) (crawlStatus: CrawlStatusActor) = 
         async {
             do! Async.Sleep(1000)
 
@@ -96,9 +97,10 @@ module Program =
             if config.showProgressTicker then
                 status |> progress 
                 
-            return! match status.isComplete with
-                    | false -> checkComplete config crawlStatus
-                    | true -> async { return ignore 0 }               
+            return! match status.isComplete, status.isErrorLimited with
+                    | false, false -> waitComplete config crawlStatus
+                    | false, true ->  async { return false } // TODO: return a msg???
+                    | true, _ ->      async { return true }               
             }
 
     let private runCrawler (app: CommandLine.App) (cts: CancellationTokenSource)=
@@ -108,7 +110,7 @@ module Program =
             let config = crawlerConfig app
 
             let logger = LogPublishActor(config)
-            let crawlStatus = CrawlStatusActor(logger.Post)
+            let crawlStatus = CrawlStatusActor(logger.Post, config)
             let writer = EntityWriterActor(logger.Post, crawlStatus.Post, config)
             let crawler = CrawlerActor(logger.Post, crawlStatus.Post, writer.Post, config)
                         
@@ -116,15 +118,18 @@ module Program =
             
             config |> seedingActorMessages |> Seq.iter crawler.Post
             
-            do! checkComplete config crawlStatus
+            let! completeStatus = waitComplete config crawlStatus
             
             let! status = crawlStatus.GetStatus()
             status |> progressReport |> ActorMessage.Info |> logger.Post
             
             // TODO: wait for logger to clear...
 
-            (System.DateTime.UtcNow - start).ToString() |> sprintf "\r\nDuration: %s" |> Console.Out.WriteLine
-            
+            if completeStatus then
+                (System.DateTime.UtcNow - start).ToString() |> sprintf "\r\nComplete. Duration: %s" |> ConsoleUtils.info
+            else
+                (System.DateTime.UtcNow - start).ToString() |> sprintf "\r\nFailed. Duration: %s" |> ConsoleUtils.error
+
             cts.Cancel()
             
             return 0 |> ignore

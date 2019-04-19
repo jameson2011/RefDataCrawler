@@ -10,7 +10,7 @@ type private CrawlStats = {
     }
 
 
-type CrawlStatusActor(log: PostMessage)=
+type CrawlStatusActor(log: PostMessage, config: CrawlerConfig)=
     
     
     let getCounts (stats: CrawlStats) entityType =
@@ -53,13 +53,21 @@ type CrawlStatusActor(log: PostMessage)=
                                                 
             completions.Length = stats.Length
 
+    let isMaxErrors (stats: CrawlStats) =
+        match config.maxErrors with
+        | 0 -> false
+        | x -> stats.errorCount >= x
+        
+
     let onGetStats (stats: CrawlStats) =
         
         let progress = entityTypeProgress stats.entityTypeCounts
 
         { CrawlProgress.entityTypes = progress; 
                         errorCount = stats.errorCount;
-                        isComplete = isComplete progress }
+                        isComplete = isComplete progress;
+                        isErrorLimited = isMaxErrors stats;
+                        }
 
 
     let pipe = MessageInbox.Start(fun inbox -> 

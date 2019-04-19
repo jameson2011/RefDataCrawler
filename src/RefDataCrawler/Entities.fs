@@ -61,6 +61,9 @@ type CrawlerConfig =
         crawlTypes: bool;
         crawlDogmaAttributes: bool;
         crawlDogmaEffects: bool;
+
+        maxErrors: int;
+
         verboseLogging: bool;
         showProgressTicker: bool;
     } with
@@ -76,7 +79,8 @@ type CrawlEntityTypeProgress =
 
 type CrawlProgress= 
     {
-        isComplete:  bool;
-        errorCount:  int;
-        entityTypes: CrawlEntityTypeProgress[];
+        isComplete:     bool;
+        isErrorLimited: bool;
+        errorCount:     int;
+        entityTypes:    CrawlEntityTypeProgress[];
     }

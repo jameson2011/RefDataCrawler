@@ -93,6 +93,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
             let! serverStatus = Esi.serverStatus client
             // get the ESI server status
             // if different -> continue
+
+            // TODO: when down:{"error":"The datasource tranquility is temporarily unavailable"}
             let msg = serverStatus |> Option.map (fun ss -> { ServerVersion.version = string ss.ServerVersion }
                                                                 |> Newtonsoft.Json.JsonConvert.SerializeObject
                                                                 |> (fun j -> ActorMessage.Entity (entityType, entityId, "", j)) )

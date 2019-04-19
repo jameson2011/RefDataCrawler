@@ -2,7 +2,7 @@
   "profiles": {
     "RefDataCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "run --regions  --categories --progress"
+      "commandLineArgs": "run --regions  --categories --types --progress --maxerrors 0"
     }
   }
 }
