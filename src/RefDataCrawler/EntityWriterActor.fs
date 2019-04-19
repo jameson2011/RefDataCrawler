@@ -60,6 +60,21 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
             }
         writeEntityRecurse() 
 
+    let getEntityMetadata (entityType, id) = 
+        async {
+            try 
+                let folder = entityFolder entityType
+                let filePath = metaFileName (entityType, id) |> Io.path folder
+                let! json = Io.readJson filePath
+
+                return match json with
+                        | Some json -> 
+                            let meta = JsonConvert.DeserializeObject<EntityMetadata>(json)
+                            Some meta
+                        | _ -> None
+            with _ -> return None
+        }
+
     let pipe = MessageInbox.Start(fun inbox -> 
         
         let rec getNext() = async {
@@ -67,8 +82,11 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
             let! inMsg = inbox.Receive()
 
             match inMsg with
-            | Entity (t, id, etag, json) -> return! (writeEntity (t, id, etag, json))
-            | _ -> 0 |> ignore
+            | Entity (t, id, etag, json) ->             return! (writeEntity (t, id, etag, json))
+            | EntityMetadata (entityType, ids, ch) ->   let! results = ids  |> Array.map (fun id -> (entityType, id) |> getEntityMetadata ) 
+                                                                            |> Async.Parallel
+                                                        results |> ch.Reply
+            | _ ->                                      0 |> ignore
 
             return! getNext()
         }
@@ -80,3 +98,5 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
 
     member __.Post(msg: ActorMessage) = pipe.Post msg
 
+    member __.GetMetadata(entityType, ids) = 
+        pipe.PostAndAsyncReply (fun ch -> ActorMessage.EntityMetadata (entityType, ids, ch))

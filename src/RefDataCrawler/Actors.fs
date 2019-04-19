@@ -40,6 +40,8 @@ type ActorMessage =
 | DiscoveredEntity of string * string
 | Entity of string * string * string * string
 | FinishedEntity of string * string
+| EntityMetadata of string * string[] * AsyncReplyChannel<EntityMetadata option[]>
+
 | CrawlStatus of AsyncReplyChannel<CrawlProgress>
 | Ping of AsyncReplyChannel<unit>
 

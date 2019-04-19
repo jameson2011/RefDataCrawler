@@ -10,6 +10,8 @@ module Io=
 
     let isRooted (path: string) = Path.IsPathRooted(path)
 
+    let fileExists path = File.Exists path
+
     let createFolder path =
         async {
             let di = Directory.CreateDirectory(path)
@@ -31,11 +33,14 @@ module Io=
 
     let readJson path =
         async {
-            use fs = new FileStream(path, FileMode.Open, FileAccess.Read)
-            let fsr = new StreamReader(fs, true)
+            if fileExists path then
+                use fs = new FileStream(path, FileMode.Open, FileAccess.Read)
+                let fsr = new StreamReader(fs, true)
 
-            let! json = fsr.ReadToEndAsync() |> Async.AwaitTask
+                let! json = fsr.ReadToEndAsync() |> Async.AwaitTask
 
-            return json
+                return Some json
+            else
+                return None
         }
 

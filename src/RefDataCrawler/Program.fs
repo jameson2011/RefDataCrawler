@@ -114,7 +114,7 @@ module Program =
             let logger = LogPublishActor(config)
             let crawlStatus = CrawlStatusActor(logger.Post, config)
             let writer = EntityWriterActor(logger.Post, crawlStatus.Post, config)
-            let crawler = CrawlerActor(logger.Post, crawlStatus.Post, writer.Post, config)
+            let crawler = CrawlerActor(logger.Post, crawlStatus.Post, writer.Post, writer.GetMetadata, config)
                         
             "Starting" |> ActorMessage.Info |> logger.Post
             

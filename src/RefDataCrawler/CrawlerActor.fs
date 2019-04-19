@@ -3,7 +3,9 @@
 open System
 open System.Net.Http
 
-type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostMessage, config: CrawlerConfig)=
+type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostMessage, 
+                    getMetadata: (string * string[] -> Async<EntityMetadata option[]>), 
+                    config: CrawlerConfig)=
     
     let client = HttpRequests.httpClient()
     
@@ -153,17 +155,30 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
             
             ids |> String.concatenate ", " |>  sprintf "Found %s %s" entityType |> ActorMessage.Info |> log
 
-            let reqs = ids |> Array.map (fun id -> req id |> HttpResponses.response client |> Async.map (fun r -> (id,r) ) )
+            let! idEtags = getMetadata (entityType, ids) 
+                                |> Async.map (Seq.reduceOptions 
+                                                    >> Seq.map (fun m -> (m.id, m.etag) )
+                                                    >> Map.ofSeq)
+            let getReq id = 
+                match idEtags.TryFind id with
+                | Some tag -> req id |> HttpRequests.etag tag
+                | _ -> req id
+
+            let reqs = ids  |> Array.map (fun id -> getReq id |> HttpResponses.response client 
+                                                              |> Async.map (fun r -> (id,r) ) )
 
             let! resps = reqs |> Async.Parallel
             
             let okResps, failResps = resps |> Array.partition (fun (id,r) -> r.Status = HttpStatus.OK)
             
-            okResps 
-                |> Seq.iter (fun (id,resp) -> 
+            let notModResps, failResps = failResps |> Array.partition (fun (id,resp) -> resp.Status = HttpStatus.OkNotModified)
+
+            okResps     |> Seq.iter (fun (id,resp) -> 
                                         let etag = resp.ETag |> Option.map (fun e -> e.tag) |> Option.defaultValue ""
                                         (entityType, id, etag, resp.Message) |> ActorMessage.Entity |> writeEntity       
-                                )
+                                    )
+            notModResps |> Seq.map (fun (id,_) -> (entityType, id)) 
+                        |> Seq.iter ((ActorMessage.FinishedEntity >> crawlStatus) <--> (fun (e,id) -> sprintf "Skipping %s %s as not modified"  e id |> ActorMessage.Info |> log))
 
             // repost errors...
             if failResps.Length > 0 then
