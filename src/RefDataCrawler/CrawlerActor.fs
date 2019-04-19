@@ -6,12 +6,7 @@ open System.Net.Http
 type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostMessage, config: CrawlerConfig)=
     
     let client = HttpRequests.httpClient()
-
-    let safe defaultValue map =
-        try
-            map()
-        with
-        | _ -> defaultValue
+    
     
     let postDiscovered entityType ids =
         ids |> Seq.map (fun s -> (entityType, s)) 
@@ -189,28 +184,28 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                     
                     
                     // get the stations, planets, moons, belts, etc...
-                    let planetIds = (fun () -> system.Planets) |> safe [||]
+                    let planetIds = (fun () -> system.Planets) |> (?>) [||]
                                         |> Array.map (fun x -> string x.PlanetId) 
                                         |> ActorMessage.PlanetIds
                     
-                    let starIds = (fun () -> [| string system.StarId |]) |> safe [||]
+                    let starIds = (fun () -> [| string system.StarId |]) |> (?>) [||]
                                         |> ActorMessage.StarIds
 
-                    let moonIds = (fun () -> system.Planets) |> safe [||]
+                    let moonIds = (fun () -> system.Planets) |> (?>) [||]
                                         |> Seq.collect (fun p -> p.Moons) 
                                         |> Seq.map string 
                                         |> Array.ofSeq |> ActorMessage.MoonIds
 
-                    let beltIds = (fun () -> system.Planets) |> safe [||]
+                    let beltIds = (fun () -> system.Planets) |> (?>) [||]
                                     |> Seq.collect (fun p -> p.AsteroidBelts) 
                                     |> Seq.map string
                                     |> Array.ofSeq |> ActorMessage.AsteroidBeltIds
 
-                    let stationIds = (fun () -> system.Stations) |> safe [||]
+                    let stationIds = (fun () -> system.Stations) |> (?>) [||]
                                         |> Array.map string
                                         |> ActorMessage.StationIds
 
-                    let stargateIds = (fun () -> system.Stargates) |> safe [||]
+                    let stargateIds = (fun () -> system.Stargates) |> (?>) [||]
                                         |> Array.map string
                                         |> ActorMessage.StargateIds
                 

@@ -7,6 +7,13 @@ open System
 module Operators=
     let (<-->) f g = (fun x -> [ f; g; ] |> List.iter (fun h -> h x ))
 
+    let (?>) defaultValue map =
+        try
+            map()
+        with
+        | _ -> defaultValue
+    
+
 module DateTimeOffset=
 
     let toUtc (x: DateTimeOffset) = x.UtcDateTime
