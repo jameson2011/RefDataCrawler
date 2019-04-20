@@ -43,7 +43,6 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
             
                     let meta = { EntityMetadata.id = id;
                                                 entityType = entityType;
-                                                captured = DateTimeOffset.UtcNow;
                                                 etag = etag} |> JsonConvert.SerializeObject
                         
                     do! Io.writeJson metaFilePath meta

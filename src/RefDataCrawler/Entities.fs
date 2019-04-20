@@ -26,7 +26,6 @@ type Star = JsonProvider<"./SampleStar.json">
 type EntityMetadata = {
         entityType: string;
         id: string;
-        captured: DateTimeOffset;
         etag: string;
     }
 
