@@ -32,6 +32,7 @@
     <Compile Include="CrawlStatusActor.fs" />
     <Compile Include="CrawlerActor.fs" />
     <Compile Include="EntityWriterActor.fs" />
+    <Compile Include="EsiCrawler.fs" />
     <Compile Include="CommandLine.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
