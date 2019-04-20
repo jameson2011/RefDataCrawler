@@ -5,7 +5,6 @@ open FSharp.Data
 
 type ServerVersion = 
     {
-        created: DateTimeOffset;
         version: string
     }
 

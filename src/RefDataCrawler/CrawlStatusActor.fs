@@ -17,10 +17,10 @@ type CrawlStatusActor(log: PostMessage, config: CrawlerConfig)=
         if stats.entityTypeCounts.ContainsKey(entityType) then stats.entityTypeCounts.[entityType]
         else (0,0)
     
-    let onDiscovered (stats: CrawlStats) entityType =
+    let onDiscovered (stats: CrawlStats) entityType count =
         let discovered,completed = getCounts stats entityType 
 
-        let typeStats = (discovered+1, completed)
+        let typeStats = (discovered+count, completed)
 
         { stats with entityTypeCounts = stats.entityTypeCounts.Add(entityType, typeStats) }
     
@@ -78,12 +78,12 @@ type CrawlStatusActor(log: PostMessage, config: CrawlerConfig)=
 
             let newStats = 
                     match inMsg with
-                    | DiscoveredEntity (t,_) -> onDiscovered stats t
-                    | FinishedEntity (t,_) ->   onFinished stats t
-                    | Error _ ->                onError stats
-                    | CrawlStatus ch ->         stats |> onGetStats |> ch.Reply 
-                                                stats
-                    | _ ->                      stats
+                    | DiscoveredEntities (t, ids) ->    onDiscovered stats t ids.Length 
+                    | FinishedEntity (t,_) ->           onFinished stats t
+                    | Error _ ->                        onError stats
+                    | CrawlStatus ch ->                 stats |> onGetStats |> ch.Reply 
+                                                        stats
+                    | _ ->                              stats
                            
             return! getNext(newStats)
         }

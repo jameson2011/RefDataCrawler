@@ -9,12 +9,10 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
     
     let client = HttpRequests.httpClient()
     
-    
     let postDiscovered entityType ids =
-        ids |> Seq.map (fun s -> (entityType, s)) 
-            |> Seq.map ActorMessage.DiscoveredEntity 
-            |> Seq.iter crawlStatus
-
+        ActorMessage.DiscoveredEntities (entityType, (ids |> Array.ofSeq) ) 
+            |> crawlStatus
+    
     let entityTypeName msg =
         match msg with
         | Regions 
@@ -103,8 +101,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
             let! serverStatus = Esi.serverStatus client
             return match serverStatus with
                     | Choice1Of2 ss -> 
-                                        let msg = { ServerVersion.version = string ss.ServerVersion;
-                                                                  created = DateTimeOffset.UtcNow }
+                                        let msg = { ServerVersion.version = string ss.ServerVersion; }
                                                         |> Newtonsoft.Json.JsonConvert.SerializeObject
                                                         |> (fun j -> ActorMessage.Entity (entityType, entityId, "", j))
                                         
