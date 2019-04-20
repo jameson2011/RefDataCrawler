@@ -2,7 +2,7 @@
   "profiles": {
     "RefDataCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "run --regions --maxerrors 3  --dest C:\\Projects\\Data\\refdatacrawler\\run7"
+      "commandLineArgs": "crawl --regions --types --maxerrors 0  --dest C:\\Projects\\Data\\refdatacrawler\\run7"
     }
   }
 }

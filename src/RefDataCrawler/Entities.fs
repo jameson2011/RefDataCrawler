@@ -39,6 +39,7 @@ type HttpStatus =
     | Error
     | BadGateway
     | NotFound
+    | HttpRequestError
     
 type WebResponse=
     {

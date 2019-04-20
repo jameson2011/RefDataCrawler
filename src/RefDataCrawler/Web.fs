@@ -225,7 +225,15 @@ module HttpResponses=
                 }
         }
 
-    
+    let private httpExceptionResp (ex: Exception) =
+        {   Status = HttpStatus.HttpRequestError;
+            Retry = defaultErrorWindow |> Some;
+            Message = ex.Message;
+            ETag = None;
+            ErrorLimit = Some 0;
+            ErrorWindow = defaultErrorWindow |> Some;
+        }
+        
     let maxWaitTime (resps: seq<RefDataCrawler.WebResponse>)=
         let errorLimitRemaining r = (r.ErrorLimit |> Option.defaultValue 0)
         
@@ -239,19 +247,21 @@ module HttpResponses=
         
     let response (client: HttpClient) (request: HttpRequestMessage) =
         async {
-            // TODO: no network = error; return an object...
-            use! resp = client.SendAsync(request) |> Async.AwaitTask
+            try
+                use! resp = client.SendAsync(request) |> Async.AwaitTask
             
-            let! result = match resp.StatusCode with
-                            | HttpStatusCode.OK ->  parseOkResponse resp
-                            | HttpStatusCode.NotModified -> parseNotModifiedResponse resp
-                            | HttpStatusCode.Unauthorized -> parseUnauthResp resp
-                            | HttpStatusCode.NotFound -> parseNotFoundResp resp 
-                            | HttpStatusCode.TooManyRequests -> parseTooManyRequests resp
-                            | HttpStatusCode.BadGateway -> parseBadGateway resp
-                            | _ -> parseErrorResp resp 
+                let! result = match resp.StatusCode with
+                                | HttpStatusCode.OK ->  parseOkResponse resp
+                                | HttpStatusCode.NotModified -> parseNotModifiedResponse resp
+                                | HttpStatusCode.Unauthorized -> parseUnauthResp resp
+                                | HttpStatusCode.NotFound -> parseNotFoundResp resp 
+                                | HttpStatusCode.TooManyRequests -> parseTooManyRequests resp
+                                | HttpStatusCode.BadGateway -> parseBadGateway resp
+                                | _ -> parseErrorResp resp 
 
-            return result
+                return result
+            with
+            | ex -> return (httpExceptionResp ex)
             }
             
 

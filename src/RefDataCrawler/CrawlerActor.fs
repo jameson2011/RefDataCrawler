@@ -81,11 +81,15 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
 
     
     
-    let postbackEntityTypeError post (msg: ActorMessage) resp =
+    let postbackEntityTypeError (post: PostMessage) (msg: ActorMessage) resp =
         let entityType = entityTypeName msg
-        sprintf "Error [%s] for %s" (string resp.Status) entityType
-            |> ActorMessage.Error
-            |> (log <--> crawlStatus)   
+        
+        let errMsg =  sprintf "Error [%s] " (string resp.Status)
+                    + (match resp.Status with
+                            | HttpRequestError -> resp.Message
+                            | _ -> sprintf " for %s" entityType ) 
+                   |> ActorMessage.Error
+        errMsg |> (log <--> crawlStatus)   
         msg |> post |> ignore
 
         
