@@ -28,7 +28,9 @@ module Program =
         
     
     let private seedingActorMessages config =
-        let maps = [| 
+        
+        let mandatoryMsgs = [| ActorMessage.ServerStatus |]
+        let msgMaps = [| 
                         ((fun c -> c.crawlRegions), ActorMessage.Regions);
                         ((fun c -> c.crawlConstellations), ActorMessage.Constellations);
                         ((fun c -> c.crawlSystems), ActorMessage.SolarSystems);
@@ -37,14 +39,16 @@ module Program =
                         ((fun c -> c.crawlTypes), ActorMessage.Types);
                         ((fun c -> c.crawlDogmaAttributes), ActorMessage.DogmaAttributes);
                         ((fun c -> c.crawlDogmaEffects), ActorMessage.DogmaEffects);
-                    |]
+                      |]
         
-        let results = maps |> Seq.filter (fun (f,_) -> f config) 
+        let msgs = msgMaps |> Seq.filter (fun (f,_) -> f config) 
                            |> Seq.map snd
                            |> Array.ofSeq
-        if results.Length = 0 then  maps |> Array.map snd
-        else                        results
+
+        let msgs =  if msgs.Length = 0 then msgMaps |> Array.map snd
+                    else                    msgs
         
+        [ mandatoryMsgs; msgs ] |> Array.concat
 
     
     let private progress (status: CrawlProgress) = 
@@ -146,7 +150,7 @@ module Program =
 
     let private createAppTemplate()=
         let app = CommandLine.createApp()
-                    |> CommandLine.addRun startCrawler
+                    |> CommandLine.addCrawl startCrawler
                     |> CommandLine.setHelp
     
         app.OnExecute(fun () -> app.ShowHelp()

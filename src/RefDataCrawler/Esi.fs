@@ -7,12 +7,11 @@ module Esi=
     
     let private getUrl = HttpRoutes.url >> HttpRequests.get
     let private getUrlQuery path query = HttpRoutes.urlQuery path query |> HttpRequests.get
-
-    // TODO: bad!
-    let private mapOkSome mapper resp =
+    
+    let private mapRespObject mapper resp =
         match resp.Status with
-        | HttpStatus.OK -> mapper resp |> Some
-        | _ -> None
+        | HttpStatus.OK ->  mapper resp |> Choice1Of2
+        | _ ->              resp |> Choice2Of2
 
     
     let private mapRespArray mapper resp =
@@ -99,7 +98,7 @@ module Esi=
         async {
             let! resp = serverStatusRequest() |> HttpResponses.response client
 
-            return resp |> mapOkSome toServerStatus
+            return resp |> mapRespObject toServerStatus
         }
 
     let private getEntityIds client req=

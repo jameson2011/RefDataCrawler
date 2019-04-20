@@ -124,7 +124,7 @@ module CommandLine=
     let private composeAppPipe(f: App -> App) = new System.Action<App>(f >> setHelp >> ignore)
     
 
-    let addRun cmd (app: App) =
+    let addCrawl cmd (app: App) =
         let f = setDesc "Run the crawler" 
                         >> addTargetFolderArg
                         >> addRegionsArg
@@ -139,5 +139,5 @@ module CommandLine=
                         >> addProgressTickerArg
                         >> addMaxErrorsArg
                         >> setAction cmd
-        app.Command("run", (composeAppPipe f)) |> ignore
+        app.Command("crawl", (composeAppPipe f)) |> ignore
         app

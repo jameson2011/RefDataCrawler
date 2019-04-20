@@ -39,6 +39,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | DogmaAttributeIds _ -> "dogma_attribute"
         | DogmaEffects
         | DogmaEffectIds _ ->   "dogma_effect"
+        | ServerStatus ->       "server_status"
         | _ -> invalidOp "Unknown type"
         
     let entityTypeIds msg =
@@ -88,26 +89,28 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         msg |> post |> ignore
 
         
-    let onGetServerStatus () =
+    let onGetServerStatus post actorMsg =
         async {
-            let entityType = "server_status"
-            let entityId = ""
+            let entityType = entityTypeName actorMsg
+            let entityId = "0"
             
             postDiscovered entityType [ entityId ]
 
             let! serverStatus = Esi.serverStatus client
-            // get the ESI server status
-            // if different -> continue
-
-            // TODO: when down:{"error":"The datasource tranquility is temporarily unavailable"}
-            let msg = serverStatus |> Option.map (fun ss -> { ServerVersion.version = string ss.ServerVersion }
-                                                                |> Newtonsoft.Json.JsonConvert.SerializeObject
-                                                                |> (fun j -> ActorMessage.Entity (entityType, entityId, "", j)) )
-            match msg with
-            | Some m -> writeEntity m
-            | _ -> ignore 0
-
-            return TimeSpan.Zero
+            return match serverStatus with
+                    | Choice1Of2 ss -> 
+                                        let msg = { ServerVersion.version = string ss.ServerVersion;
+                                                                  created = DateTimeOffset.UtcNow }
+                                                        |> Newtonsoft.Json.JsonConvert.SerializeObject
+                                                        |> (fun j -> ActorMessage.Entity (entityType, entityId, "", j))
+                                        
+                                        writeEntity msg
+                                        
+                                        TimeSpan.Zero
+                    | Choice2Of2 errResp ->   
+                                        postbackEntityTypeError post actorMsg errResp
+                                        [errResp] |> HttpResponses.maxWaitTime 
+                                        
         }
 
     
@@ -274,43 +277,48 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
             let! inMsg = inbox.Receive()
 
             let! nextWait = async {
-                                    match inMsg with
-                                    | ServerStatus ->           return! onGetServerStatus()
+                                    try
+                                        match inMsg with
+                                        | ServerStatus ->           return! onGetServerStatus post inMsg 
 
-                                    | Regions ->                return! (onGetEntityIds post (inMsg) Esi.regionIds ActorMessage.RegionIds)
-                                    | RegionIds ids ->          return! (onEntities post (entityTypeName inMsg) Esi.regionRequest ids )
+                                        | Regions ->                return! (onGetEntityIds post (inMsg) Esi.regionIds ActorMessage.RegionIds)
+                                        | RegionIds ids ->          return! (onEntities post (entityTypeName inMsg) Esi.regionRequest ids )
 
-                                    | Constellations ->         return! (onGetEntityIds post (inMsg) Esi.constellationIds ActorMessage.ConstellationIds)
-                                    | ConstellationIds ids ->   return! (onEntities post (entityTypeName inMsg) Esi.constellationRequest ids )
+                                        | Constellations ->         return! (onGetEntityIds post (inMsg) Esi.constellationIds ActorMessage.ConstellationIds)
+                                        | ConstellationIds ids ->   return! (onEntities post (entityTypeName inMsg) Esi.constellationRequest ids )
 
-                                    | SolarSystems ->           return! (onGetSystemIds post (entityTypeName inMsg))
-                                    | SolarSystemId id ->       return! (onSystemId post (entityTypeName inMsg) id)
+                                        | SolarSystems ->           return! (onGetSystemIds post (entityTypeName inMsg))
+                                        | SolarSystemId id ->       return! (onSystemId post (entityTypeName inMsg) id)
                                             
-                                    | PlanetIds ids ->          return! (onEntities post (entityTypeName inMsg) Esi.planetRequest ids)
-                                    | AsteroidBeltIds ids ->    return! (onEntities post (entityTypeName inMsg) Esi.asteroidBeltRequest ids)
-                                    | MoonIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.moonRequest ids)
-                                    | StarIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.starRequest ids)
-                                    | StationIds ids ->         return! (onEntities post (entityTypeName inMsg) Esi.stationRequest ids)
-                                    | StargateIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.stargateRequest ids)
+                                        | PlanetIds ids ->          return! (onEntities post (entityTypeName inMsg) Esi.planetRequest ids)
+                                        | AsteroidBeltIds ids ->    return! (onEntities post (entityTypeName inMsg) Esi.asteroidBeltRequest ids)
+                                        | MoonIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.moonRequest ids)
+                                        | StarIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.starRequest ids)
+                                        | StationIds ids ->         return! (onEntities post (entityTypeName inMsg) Esi.stationRequest ids)
+                                        | StargateIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.stargateRequest ids)
 
-                                    | Groups ->                 return! (onGetEntityIds post (inMsg) Esi.groupIds ActorMessage.GroupIds)
-                                    | GroupIds ids ->           return! (onEntities post (entityTypeName inMsg) Esi.groupRequest ids)
-                                    | Categories ->             return! (onGetEntityIds post (inMsg) Esi.categoryIds ActorMessage.CategoryIds)
-                                    | CategoryIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.categoryRequest ids)
-                                    | Types ->                  return! (onGetEntityIds post (inMsg) Esi.typeIds ActorMessage.TypeIds)
-                                    | TypeIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.typeRequest ids)
-                                    | DogmaAttributes ->        return! (onGetEntityIds post (inMsg) Esi.dogmaAttributeIds ActorMessage.DogmaAttributeIds)
-                                    | DogmaAttributeIds ids ->  return! (onEntities post (entityTypeName inMsg) Esi.dogmaAttributeRequest ids)
-                                    | DogmaEffects ->           return! (onGetEntityIds post (inMsg) Esi.dogmaEffectIds ActorMessage.DogmaEffectIds)
-                                    | DogmaEffectIds ids ->     return! (onEntities post (entityTypeName inMsg) Esi.dogmaEffectRequest ids)
-                                    | _ -> return TimeSpan.Zero
+                                        | Groups ->                 return! (onGetEntityIds post (inMsg) Esi.groupIds ActorMessage.GroupIds)
+                                        | GroupIds ids ->           return! (onEntities post (entityTypeName inMsg) Esi.groupRequest ids)
+                                        | Categories ->             return! (onGetEntityIds post (inMsg) Esi.categoryIds ActorMessage.CategoryIds)
+                                        | CategoryIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.categoryRequest ids)
+                                        | Types ->                  return! (onGetEntityIds post (inMsg) Esi.typeIds ActorMessage.TypeIds)
+                                        | TypeIds ids ->            return! (onEntities post (entityTypeName inMsg) Esi.typeRequest ids)
+                                        | DogmaAttributes ->        return! (onGetEntityIds post (inMsg) Esi.dogmaAttributeIds ActorMessage.DogmaAttributeIds)
+                                        | DogmaAttributeIds ids ->  return! (onEntities post (entityTypeName inMsg) Esi.dogmaAttributeRequest ids)
+                                        | DogmaEffects ->           return! (onGetEntityIds post (inMsg) Esi.dogmaEffectIds ActorMessage.DogmaEffectIds)
+                                        | DogmaEffectIds ids ->     return! (onEntities post (entityTypeName inMsg) Esi.dogmaEffectRequest ids)
+                                        | _ -> return TimeSpan.Zero
+                                    with ex ->  ActorMessage.Exception ("", ex) |> (log <--> crawlStatus)
+                                                post inMsg
+                                                return TimeSpan.FromSeconds(1.)
                                   }
+                                  
             return! getNext(nextWait)
         }
         
         getNext(TimeSpan.Zero)
     )
-
+    
     do pipe.Error.Add(Actors.postException typeof<CrawlerActor>.Name log)
 
     member __.Post(msg: ActorMessage) = pipe.Post msg

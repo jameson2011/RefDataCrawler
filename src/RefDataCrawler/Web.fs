@@ -239,6 +239,7 @@ module HttpResponses=
         
     let response (client: HttpClient) (request: HttpRequestMessage) =
         async {
+            // TODO: no network = error; return an object...
             use! resp = client.SendAsync(request) |> Async.AwaitTask
             
             let! result = match resp.StatusCode with
