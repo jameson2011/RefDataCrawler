@@ -129,7 +129,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                         
                                                 entityIds   |> Seq.chunkBySize 10
                                                             |> Seq.map msgIds 
-                                                            |> Seq.iter post
+                                                            |> Array.ofSeq
+                                                            |> Array.iter post
                                                 entityIds   |> postDiscovered entityType
                                                 // TODO: delete unlisted ones
                                                 TimeSpan.Zero
