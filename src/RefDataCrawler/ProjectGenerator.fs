@@ -2,4 +2,17 @@
 
 type ProjectGenerator(config: GenerateConfig)=
 
-    member this.Start() = true
+    let sourcePath = config.sourcePath
+    
+
+    let startGeneration() =
+        
+        ConsoleUtils.info "Starting..."
+
+        // TODO: 
+        
+        ConsoleUtils.info "Done."
+
+        true
+
+    member this.Start() = startGeneration()
