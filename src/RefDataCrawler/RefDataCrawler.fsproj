@@ -30,7 +30,7 @@
     <Compile Include="Esi.fs" />
     <Compile Include="LogPublishActor.fs" />
     <Compile Include="CrawlStatusActor.fs" />
-    <Compile Include="CrawlerActor.fs" />
+    <Compile Include="EsiCrawlerActor.fs" />
     <Compile Include="EntityWriterActor.fs" />
     <Compile Include="EsiCrawler.fs" />
     <Compile Include="ProjectGenerator.fs" />

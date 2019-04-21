@@ -88,7 +88,7 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
         getNext()
     )
 
-    do pipe.Error.Add(Actors.postException typeof<CrawlerActor>.Name log)
+    do pipe.Error.Add(Actors.postException typeof<EntityWriterActor>.Name log)
 
     member __.Post(msg: ActorMessage) = pipe.Post msg
 

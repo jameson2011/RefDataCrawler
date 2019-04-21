@@ -3,9 +3,9 @@
 open System
 open System.Net.Http
 
-type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostMessage, 
-                    getMetadata: (string * string[] -> Async<EntityMetadata option[]>), 
-                    config: CrawlerConfig)=
+type EsiCrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostMessage, 
+                     getMetadata: (string * string[] -> Async<EntityMetadata option[]>), 
+                     config: CrawlerConfig)=
     
     let client = HttpRequests.httpClient()
     
@@ -326,6 +326,6 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         getNext(TimeSpan.Zero)
     )
     
-    do pipe.Error.Add(Actors.postException typeof<CrawlerActor>.Name log)
+    do pipe.Error.Add(Actors.postException typeof<EsiCrawlerActor>.Name log)
 
     member __.Post(msg: ActorMessage) = pipe.Post msg

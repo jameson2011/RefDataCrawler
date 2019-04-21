@@ -97,7 +97,7 @@ type EsiCrawler(config: CrawlerConfig)=
             let logger = LogPublishActor(config)
             let crawlStatus = CrawlStatusActor(logger.Post, config)
             let writer = EntityWriterActor(logger.Post, crawlStatus.Post, config)
-            let crawler = CrawlerActor(logger.Post, crawlStatus.Post, writer.Post, writer.GetMetadata, config)
+            let crawler = EsiCrawlerActor(logger.Post, crawlStatus.Post, writer.Post, writer.GetMetadata, config)
                         
             "Starting" |> ActorMessage.Info |> logger.Post
             
