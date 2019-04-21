@@ -1,1 +1,6 @@
-﻿{"constellations":[20000108,20000109,20000110,20000111,20000112,20000113,20000114,20000115,20000116,20000117,20000118,20000119,20000120,20000121,20000122,20000123],"description":"Little is known by the Empires about the region known as Insmother. Long a haunt of the Angel Cartel, it forms a tangled barrier between the dense south-eastern cluster and the barbed mystery of the Cache region. Once the guardian of a little-visited backwater volume, in the wake of the Spectrum Breach incident it now serves as the primary corridor between the southern expanse and the drone-infested eastern regions.","name":"Insmother","region_id":10000009}
+﻿{
+  "constellations": [ 20000108, 20000109, 20000110, 20000111, 20000112, 20000113, 20000114, 20000115, 20000116, 20000117, 20000118, 20000119, 20000120, 20000121, 20000122, 20000123 ],
+  "description": "Little is known by the Empires about the region known as Insmother. Long a haunt of the Angel Cartel, it forms a tangled barrier between the dense south-eastern cluster and the barbed mystery of the Cache region. Once the guardian of a little-visited backwater volume, in the wake of the Spectrum Breach incident it now serves as the primary corridor between the southern expanse and the drone-infested eastern regions.",
+  "name": "Insmother",
+  "region_id": 10000009
+}
