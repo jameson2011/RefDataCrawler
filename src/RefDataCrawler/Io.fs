@@ -11,7 +11,7 @@ module Io=
     let isRooted (path: string) = Path.IsPathRooted(path)
 
     let fileExists path = File.Exists path
-
+    
     let createFolder path =
         async {
             let di = Directory.CreateDirectory(path)
@@ -43,9 +43,3 @@ module Io=
             else
                 return None
         }
-
-    let entityFolder rootPath entityType = entityType |> path rootPath
-
-    let dataFileName (entityType, id) = sprintf "%s.%s.data.json" entityType id 
-
-    let metaFileName (entityType, id) = sprintf "%s.%s.meta.json" entityType id 

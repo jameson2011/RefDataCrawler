@@ -14,6 +14,7 @@ type ETag =
     }
 
 type ServerStatus = JsonProvider<"./SampleServerStatus.json">
+type Region = JsonProvider<"./SampleRegion.json">
 type Constellation = JsonProvider<"./SampleConstellation.json">
 type SolarSystem = JsonProvider<"./SampleSolarSystem.json">
 type Planet = JsonProvider<"./SamplePlanet.json">

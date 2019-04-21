@@ -29,10 +29,10 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
             async {
                 let entityId = (entityType,id)
                 try
-                    let! folder = entityType |> Io.entityFolder rootPath |> createFolder 
+                    let! folder = entityType |> EsiFiles.entityFolder rootPath |> createFolder 
                 
-                    let dataFilePath = entityId |> Io.dataFileName |> Io.path folder
-                    let metaFilePath = entityId |> Io.metaFileName |> Io.path folder
+                    let dataFilePath = entityId |> EsiFiles.dataFileName |> Io.path folder
+                    let metaFilePath = entityId |> EsiFiles.metaFileName |> Io.path folder
                             
                     do! Io.writeJson dataFilePath json
             
@@ -57,8 +57,8 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
     let getEntityMetadata (entityType, id) = 
         async {
             try 
-                let folder = entityType |> Io.entityFolder  rootPath
-                let filePath = Io.metaFileName (entityType, id) |> Io.path folder
+                let folder = entityType |> EsiFiles.entityFolder  rootPath
+                let filePath = EsiFiles.metaFileName (entityType, id) |> Io.path folder
                 let! json = Io.readJson filePath
 
                 return match json with

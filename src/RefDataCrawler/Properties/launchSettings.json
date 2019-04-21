@@ -2,7 +2,7 @@
   "profiles": {
     "RefDataCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "crawl --market_groups --maxerrors 10  --dest C:\\Projects\\Data\\refdatacrawler\\run7"
+      "commandLineArgs": "gen  --source C:\\Projects\\GitRepos\\StaticData\\data --dest C:\\Projects\\Data\\refdatacrawler\\gen7"
     }
   }
 }
