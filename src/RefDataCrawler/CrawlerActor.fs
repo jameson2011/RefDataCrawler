@@ -205,7 +205,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
     let onSystemId (postBack: PostMessage) entityType id = 
         async {
             id |> sprintf "Found %s %s" entityType |> ActorMessage.Info |> log
-
+            // TODO: get etag; write only if modified
             let! resp = id  |> Esi.systemRequest
                             |> HttpResponses.response client
                         
