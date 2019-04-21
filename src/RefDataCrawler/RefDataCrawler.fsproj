@@ -8,6 +8,7 @@
     <Content Include="log4net.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <None Include="SampleRegion.json" />
     <None Include="SampleConstellation.json" />
     <None Include="SampleAsteroidBelt.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
