@@ -69,6 +69,12 @@ type CrawlerConfig =
     } with
     static member TargetPathDefault = @".\data\"
 
+type GenerateConfig = 
+    {
+        targetPath : string;
+        sourcePath : string;
+    } with
+    static member TargetPathDefault = @".\src\"
     
 type CrawlEntityTypeProgress = 
     {

@@ -9,6 +9,7 @@ module CommandLine=
     type CmdOption = CommandLineUtils.CommandOption
     type Command = App -> bool
 
+    let private sourceFolderArg = "source"
     let private targetFolderArg = "dest"
     let private regionsArg = "regions"
     let private constellationsArg = "constellations"
@@ -78,8 +79,11 @@ module CommandLine=
         app.Description <- desc
         app
 
+    let addSourceFolderArg =                addSingleOption sourceFolderArg sourceFolderArg "The source folder"
+    let getSourceFolderArg app =            getStringOption sourceFolderArg app 
+
     let addTargetFolderArg =                addSingleOption targetFolderArg targetFolderArg "The target folder"
-    let getTargetFolderValue app =          getStringOption targetFolderArg app |> Option.defaultValue CrawlerConfig.TargetPathDefault
+    let getTargetFolderValue app =          getStringOption targetFolderArg app 
 
     let addRegionsArg =                     addSwitchOption regionsArg regionsArg "Crawl Regions"
     let getRegionsValue app =               getSwitchOption regionsArg app
@@ -140,4 +144,12 @@ module CommandLine=
                         >> addMaxErrorsArg
                         >> setAction cmd
         app.Command("crawl", (composeAppPipe f)) |> ignore
+        app
+
+    let addGenerate cmd (app: App) =
+        let f = setDesc "Generate code"
+                        >> addSourceFolderArg
+                        >> addTargetFolderArg
+                        >> setAction cmd
+        app.Command("gen", composeAppPipe f) |> ignore
         app

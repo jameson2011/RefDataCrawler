@@ -10,7 +10,7 @@ module Program =
         let verboseLogging = if showProgressTicker then false
                              else true
 
-        { CrawlerConfig.targetPath = CommandLine.getTargetFolderValue app;
+        { CrawlerConfig.targetPath = CommandLine.getTargetFolderValue app |> Option.defaultValue CrawlerConfig.TargetPathDefault;
                           crawlRegions = CommandLine.getRegionsValue app;
                           crawlConstellations = CommandLine.getConstellationsValue app;
                           crawlSystems = CommandLine.getSystemsValue app;
@@ -24,7 +24,10 @@ module Program =
                           maxErrors = CommandLine.getMaxErrorsValue app;
         }
         
-        
+    let private generateConfig (app: CommandLine.App) =
+        { GenerateConfig.sourcePath = CommandLine.getSourceFolderArg app |> Option.defaultValue @"C:\\";
+                         targetPath = CommandLine.getTargetFolderValue app |> Option.defaultValue GenerateConfig.TargetPathDefault }
+
     let private startCrawler (app: CommandLine.App) =        
         let config = crawlerConfig app
 
@@ -32,9 +35,17 @@ module Program =
 
         crawler.Start()
 
+    let private startGenerate (app: CommandLine.App) =
+        let config = generateConfig app
+
+        let gen = new ProjectGenerator(config)
+
+        gen.Start()
+
     let private createAppTemplate()=
         let app = CommandLine.createApp()
                     |> CommandLine.addCrawl startCrawler
+                    |> CommandLine.addGenerate startGenerate
                     |> CommandLine.setHelp
     
         app.OnExecute(fun () -> app.ShowHelp()
