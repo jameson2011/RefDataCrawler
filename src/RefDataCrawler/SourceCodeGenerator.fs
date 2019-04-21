@@ -1,6 +1,6 @@
 ﻿namespace RefDataCrawler
 
-type ProjectGenerator(config: GenerateConfig)=
+type SourceCodeGenerator(config: GenerateConfig)=
 
     let sourcePath = config.sourcePath
     

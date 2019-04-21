@@ -39,7 +39,7 @@ module Program =
     let private startGenerate (app: CommandLine.App) =
         let config = generateConfig app
 
-        let gen = new ProjectGenerator(config)
+        let gen = new SourceCodeGenerator(config)
 
         gen.Start()
 
