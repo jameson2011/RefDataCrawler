@@ -30,6 +30,7 @@
     <Compile Include="Web.fs" />
     <Compile Include="Esi.fs" />
     <Compile Include="EsiFiles.fs" />
+    <Compile Include="..\Shared\StaticDataEntities.fs" Link="StaticDataEntities.fs" />
     <Compile Include="LogPublishActor.fs" />
     <Compile Include="CrawlStatusActor.fs" />
     <Compile Include="EsiCrawlerActor.fs" />
