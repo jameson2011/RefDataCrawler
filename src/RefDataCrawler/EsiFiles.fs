@@ -19,19 +19,19 @@ module EsiFiles=
         
     
 
-    let entityFolder rootPath entityType = entityType |> Io.path rootPath
+    let entityFolder entityType rootPath = entityType |> Io.path rootPath
 
     let dataFileName (entityType, id) = sprintf "%s.%s.%s" entityType id dataFileExtension
 
     let metaFileName (entityType, id) = sprintf "%s.%s.%s" entityType id metaFileExtension
 
     let entityFilePaths root entityType =
-        entityType  |> entityFolder root 
-                    |> dataFiles
+        root  |> entityFolder entityType 
+              |> dataFiles
         
 
     let entityFilePath root entityType id =
-        let folder = entityType |> entityFolder root
+        let folder = root |> entityFolder entityType
         let filename = (entityType, id) |> dataFileName
         let path = filename |> Io.path folder
 
@@ -42,13 +42,12 @@ module EsiFiles=
     
     let private allEntities root entityType mapper =
         async {
-            let tasks = entityType  |> entityFilePaths root 
-                                    |> Seq.map Io.readJson
-        
-            let! jsons = tasks |> Async.Parallel 
-
-            return jsons |> Seq.reduceOptions |> Seq.map mapper |> List.ofSeq
-
+            let result = entityType |> entityFilePaths root 
+                                    |> Seq.map (Io.readJson >> Async.RunSynchronously)
+                                    |> Seq.reduceOptions
+                                    |> Seq.map mapper
+            
+            return result
         }
 
     let regions root = allEntities root "region" Region.Parse
