@@ -44,3 +44,8 @@ module Io=
                 return None
         }
 
+    let entityFolder rootPath entityType = entityType |> path rootPath
+
+    let dataFileName (entityType, id) = sprintf "%s.%s.data.json" entityType id 
+
+    let metaFileName (entityType, id) = sprintf "%s.%s.meta.json" entityType id 

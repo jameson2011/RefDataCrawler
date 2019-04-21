@@ -23,21 +23,16 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
     let postCompleted (entityType, id) =
         ActorMessage.FinishedEntity (entityType, id) |> crawlStatus
 
-    let entityFolder entityType = entityType |> Io.path rootPath
-
-    let dataFileName (entityType, id) = sprintf "%s.%s.data.json" entityType id 
-
-    let metaFileName (entityType, id) = sprintf "%s.%s.meta.json" entityType id 
-
+    
     let writeEntity (entityType, id, etag, json) =
         let rec writeEntityRecurse() = 
             async {
                 let entityId = (entityType,id)
                 try
-                    let! folder = entityType |> entityFolder |> createFolder 
+                    let! folder = entityType |> Io.entityFolder rootPath |> createFolder 
                 
-                    let dataFilePath = entityId |> dataFileName |> Io.path folder
-                    let metaFilePath = entityId |> metaFileName |> Io.path folder
+                    let dataFilePath = entityId |> Io.dataFileName |> Io.path folder
+                    let metaFilePath = entityId |> Io.metaFileName |> Io.path folder
                             
                     do! Io.writeJson dataFilePath json
             
@@ -62,8 +57,8 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
     let getEntityMetadata (entityType, id) = 
         async {
             try 
-                let folder = entityFolder entityType
-                let filePath = metaFileName (entityType, id) |> Io.path folder
+                let folder = entityType |> Io.entityFolder  rootPath
+                let filePath = Io.metaFileName (entityType, id) |> Io.path folder
                 let! json = Io.readJson filePath
 
                 return match json with
