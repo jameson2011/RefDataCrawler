@@ -37,6 +37,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | DogmaAttributeIds _ -> "dogma_attribute"
         | DogmaEffects
         | DogmaEffectIds _ ->   "dogma_effect"
+        | MarketGroups
+        | MarketGroupIds _ ->   "market_group"
         | ServerStatus ->       "server_status"
         | _ -> invalidOp "Unknown type"
         
@@ -55,6 +57,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | TypeIds ids
         | DogmaAttributeIds ids
         | DogmaEffectIds ids
+        | MarketGroupIds ids
         | StargateIds ids ->    ids |> List.ofSeq
         | _ ->                  []
 
@@ -75,6 +78,7 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
         | "type" ->     TypeIds
         | "dogma_attribute" -> DogmaAttributeIds
         | "dogma_effect" -> DogmaEffectIds
+        | "market_group" -> MarketGroupIds
         | _ -> invalidOp "unknown type" 
 
     
@@ -308,6 +312,8 @@ type CrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: PostM
                                         | DogmaAttributeIds ids ->  return! (onEntities post (entityTypeName inMsg) Esi.dogmaAttributeRequest ids)
                                         | DogmaEffects ->           return! (onGetEntityIds post (inMsg) Esi.dogmaEffectIds ActorMessage.DogmaEffectIds)
                                         | DogmaEffectIds ids ->     return! (onEntities post (entityTypeName inMsg) Esi.dogmaEffectRequest ids)
+                                        | MarketGroups ->           return! (onGetEntityIds post (inMsg) Esi.marketGroupIds ActorMessage.MarketGroupIds)
+                                        | MarketGroupIds ids ->     return! (onEntities post (entityTypeName inMsg) Esi.marketGroupRequest ids)
                                         | _ -> return TimeSpan.Zero
                                     with ex ->  ActorMessage.Exception ("", ex) |> (log <--> crawlStatus)
                                                 post inMsg

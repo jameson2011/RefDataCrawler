@@ -61,6 +61,7 @@ type CrawlerConfig =
         crawlTypes: bool;
         crawlDogmaAttributes: bool;
         crawlDogmaEffects: bool;
+        crawlMarketGroups: bool;
 
         maxErrors: int;
 

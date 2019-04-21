@@ -19,6 +19,7 @@ module Program =
                           crawlTypes = CommandLine.getTypesValue app;
                           crawlDogmaAttributes = CommandLine.getDogmaAttributesValue app;
                           crawlDogmaEffects = CommandLine.getDogmaEffectsValue app;
+                          crawlMarketGroups = CommandLine.getMarketGroupsValue app;
                           verboseLogging = verboseLogging;
                           showProgressTicker = showProgressTicker;
                           maxErrors = CommandLine.getMaxErrorsValue app;

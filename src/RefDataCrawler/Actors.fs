@@ -36,6 +36,8 @@ type ActorMessage =
 | DogmaAttributeIds of string[]
 | DogmaEffects
 | DogmaEffectIds of string[]
+| MarketGroups
+| MarketGroupIds of string[]
 
 | DiscoveredEntities of string * string[] 
 | Entity of string * string * string * string

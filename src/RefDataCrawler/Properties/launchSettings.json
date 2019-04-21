@@ -2,7 +2,7 @@
   "profiles": {
     "RefDataCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "crawl --regions --constellations  --maxerrors 1  --dest C:\\Projects\\Data\\refdatacrawler\\run7"
+      "commandLineArgs": "crawl --market_groups --maxerrors 10  --dest C:\\Projects\\Data\\refdatacrawler\\run7"
     }
   }
 }

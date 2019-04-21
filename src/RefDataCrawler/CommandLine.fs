@@ -19,6 +19,7 @@ module CommandLine=
     let private typesArg = "types"
     let private dogmaAttributesArg = "dogma_attributes"
     let private dogmaEffectsArg = "dogma_effects"
+    let private marketGroupsArg = "market_groups"
     let private verboseArg = "verbose"
     let private progressTickerArg = "progress"
     let private errorLimitArg = "maxerrors"
@@ -109,6 +110,8 @@ module CommandLine=
     let addDogmaEffectsArg =                addSwitchOption dogmaEffectsArg dogmaEffectsArg "Crawl Dogma Effects"
     let getDogmaEffectsValue app =          getSwitchOption dogmaEffectsArg app
 
+    let addMarketGroupsArg =                addSwitchOption marketGroupsArg marketGroupsArg "Crawl Market Groups"
+    let getMarketGroupsValue app =          getSwitchOption marketGroupsArg app
 
     let addVerboseArg =                     addSwitchOption verboseArg verboseArg "Verbose logging"
     let getVerboseValue app =               getSwitchOption verboseArg app
@@ -139,6 +142,7 @@ module CommandLine=
                         >> addTypesArg
                         >> addDogmaAttributesArg
                         >> addDogmaEffectsArg
+                        >> addMarketGroupsArg
                         >> addVerboseArg
                         >> addProgressTickerArg
                         >> addMaxErrorsArg

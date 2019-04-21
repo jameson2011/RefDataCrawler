@@ -90,6 +90,13 @@ module Esi=
     let dogmaEffectRequest id =
         id |> sprintf "v2/dogma/effects/%s/" |> getUrl
 
+    let marketGroupIdsRequest() =
+        "v1/markets/groups/" |> getUrl
+
+    let marketGroupRequest id =
+        id |> sprintf "v1/markets/groups/%s/" |> getUrl
+
+
     let toServerStatus resp = 
         resp.Message |> ServerStatus.Parse
         
@@ -139,6 +146,8 @@ module Esi=
     let dogmaAttributeIds client = getEntityIds client dogmaAttributeIdsRequest
 
     let dogmaEffectIds client = getEntityIds client dogmaEffectIdsRequest
+
+    let marketGroupIds client = getEntityIds client marketGroupIdsRequest
 
     let toConstellation (resp: WebResponse)=
         Constellation.Parse(resp.Message)
