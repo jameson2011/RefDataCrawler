@@ -1,19 +1,20 @@
 ﻿namespace RefDataCrawler
 
+open System
 open DotNetStaticData
 
 type SourceCodeGenerator(config: GenerateConfig)=
 
     let sourcePath = config.sourcePath
     
-    let toRegion(value: Region.Root) = 
+    let toRegion (id: string, value: Region.Root) = 
         
         { RegionData.id = value.RegionId; 
                     name = value.Name; 
                     constellationIds = value.Constellations; 
                     }
 
-    let toConstellation(value: Constellation.Root) =
+    let toConstellation (id: string, value: Constellation.Root) =
         { ConstellationData.id = value.ConstellationId;
                             name = value.Name;
                             regionId = value.RegionId;
@@ -23,7 +24,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
                                                       z = float value.Position.Z}
                             }
 
-    let toSolarSystem(value: SolarSystem.Root) =
+    let toSolarSystem (id: string, value: SolarSystem.Root) =
         
         let planets = safeDefault (fun () -> value.Planets) [||]
         let belts = planets |> Array.collect (fun p -> safeDefault (fun () -> p.AsteroidBelts) [||] )
@@ -45,7 +46,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         }
         
 
-    let toPlanet(value: Planet.Root) =
+    let toPlanet (id: string, value: Planet.Root) =
         {
             PlanetData.id = value.PlanetId;
                        name = value.Name;
@@ -56,15 +57,15 @@ type SourceCodeGenerator(config: GenerateConfig)=
                        typeId = value.TypeId;
         }
 
-    let toStar (value: Star.Root) =
+    let toStar (id: string, value: Star.Root) =
         {
-            StarData.id = value.SolarSystemId; // TODO: ???
+            StarData.id = Int32.Parse id; // TODO: ???
                      name = value.Name;
                      solarSystemId = value.SolarSystemId;
                      typeId = value.TypeId;
         }
 
-    let toStargate (value: Stargate.Root) =
+    let toStargate (id: string, value: Stargate.Root) =
         {
             StargateData.id = value.StargateId;
                         name = value.Name;
@@ -77,7 +78,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         destinationStargateId = value.Destination.StargateId;
         }
 
-    let toMoon (value: Moon.Root) =
+    let toMoon (id: string, value: Moon.Root) =
         {
             MoonData.id = value.MoonId;
                     name = value.Name;
@@ -87,14 +88,14 @@ type SourceCodeGenerator(config: GenerateConfig)=
                                                     z = float value.Position.Z};
         }
 
-    let toBelt (value: AsteroidBelt.Root) = 
+    let toBelt (id: string, value: AsteroidBelt.Root) = 
         {
-            AsteroidBeltData.id = 0; // TODO:
-                                name = value.Name;
-                                solarSystemId = value.SystemId;
-                                position = { PositionData.x = float value.Position.X; 
-                                                            y = float value.Position.Y; 
-                                                            z = float value.Position.Z};
+            AsteroidBeltData.id = Int32.Parse id; // TODO:
+                            name = value.Name;
+                            solarSystemId = value.SystemId;
+                            position = { PositionData.x = float value.Position.X; 
+                                                        y = float value.Position.Y; 
+                                                        z = float value.Position.Z};
         }
 
     let walkOverAll() =
@@ -108,8 +109,8 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! moons = EsiFiles.moons sourcePath |> Async.map (Seq.map toMoon >> Seq.length)
             let! stargates = EsiFiles.stargates sourcePath |> Async.map (Seq.map toStargate >> Seq.length)
             
-            let! belts = EsiFiles.belts sourcePath |> Async.map (Seq.map toBelt >> Seq.length)
-            let! stars = EsiFiles.stars sourcePath |> Async.map (Seq.map toStar >> Seq.length)
+            let! belts = EsiFiles.belts sourcePath |> Async.map (Seq.map toBelt >> Array.ofSeq)
+            let! stars = EsiFiles.stars sourcePath |> Async.map (Seq.map toStar >> Array.ofSeq)
         
             return true
         }

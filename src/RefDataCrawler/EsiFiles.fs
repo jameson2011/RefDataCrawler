@@ -17,7 +17,14 @@ module EsiFiles=
     let private dataFiles folder =
         System.IO.Directory.EnumerateFiles(folder, "*." + dataFileExtension)
         
-    
+    let private readEntityJson path = 
+        async {
+            let id = entityId path   
+            let! json = Io.readJson path
+            return match json with
+                    | Some j -> Some (snd id, j)
+                    | _ ->      None
+        }
 
     let entityFolder entityType rootPath = entityType |> Io.path rootPath
 
@@ -42,10 +49,11 @@ module EsiFiles=
     
     let private allEntities root entityType mapper =
         async {
+            let map (id: string, json) = (id, mapper json)
             let result = entityType |> entityFilePaths root 
-                                    |> Seq.map (Io.readJson >> Async.RunSynchronously)
+                                    |> Seq.map (readEntityJson >> Async.RunSynchronously)
                                     |> Seq.reduceOptions
-                                    |> Seq.map mapper
+                                    |> Seq.map map
             
             return result
         }
