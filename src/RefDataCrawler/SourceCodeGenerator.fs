@@ -98,6 +98,19 @@ type SourceCodeGenerator(config: GenerateConfig)=
                                                         z = float value.Position.Z};
         }
 
+    let toStation (id: string, value: Station.Root)=
+        {
+            StationData.id = value.StationId;
+                        name = value.Name;
+                        solarSystemId = value.SystemId;
+                        position = { PositionData.x = float value.Position.X; 
+                                                        y = float value.Position.Y; 
+                                                        z = float value.Position.Z};
+                        typeId = value.TypeId;
+                        services = value.Services;
+                        maxDockableShipVolume = value.MaxDockableShipVolume;
+        }
+
     let generateUniverseTypes folder =
         async {
             let recordTypeSources = [ typedefof<PositionData>;
@@ -113,52 +126,88 @@ type SourceCodeGenerator(config: GenerateConfig)=
             return recordTypesPath   
         }
 
-    let generateRegions folder =
+    let generateRegionsSource folder (regions: seq<RegionData>)=
         async {
-            let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
-            
             let id (r: RegionData) = r.id
             let funcName = "getRegion"
             let modulePrefix = "Regions"
             let mapModule = modulePrefix
 
+            return! regions |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+        }               
 
-            // Below can be factored out
-            let moduleName prefix b = (sprintf "%s%i" prefix b)
-            
-            let moduleFuncs = 
-                    regions   |> SourceCodeGeneration.partitionEntitiesById config.sourcePartitions id
-                              |> Seq.groupBy fst
-                              |> Seq.map (fun (bkt,xs) ->   (bkt, xs |> Seq.map snd |> Array.ofSeq))
-                              |> Seq.map (fun (bkt,xs) ->   let funcSource = xs |> SourceCodeGeneration.toFSharpGenEntityFunction funcName id SourceCodeGeneration.toFSharpRecordInstanceSource 
-                                                            (bkt, (moduleName modulePrefix bkt), funcName, funcSource))
-                              |> Array.ofSeq
-                              
-            
-            let modules = 
-                moduleFuncs 
-                                |> Seq.map (fun (bkt, modName, funcName, source) -> let moduleSource = SourceCodeGeneration.toFSharpModule namespaceName modName source  
-                                                                                                            |> String.concatenate Environment.NewLine
-                                                                                    let moduleFilePath = SourceCodeGeneration.writeFSharpSource folder modName moduleSource 
-                                                                                                            |> Async.RunSynchronously 
-                                                                                    (bkt, modName, funcName, moduleFilePath) )
-                                |> Array.ofSeq
+    
+    let generateConstellationsSource folder (regions: seq<ConstellationData>)=
+        async {
+            let id (r: ConstellationData) = r.id
+            let funcName = "getConstellation"
+            let modulePrefix = "Constellations"
+            let mapModule = modulePrefix
 
-            let moduleFilePaths = modules |> Seq.map (fun (_,_,_,path) -> path) |> List.ofSeq
+            return! regions |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+        }               
 
-            // generate a module that indexes all modules/functions
-            let mapModuleFilePath = 
-                            modules |> Seq.map (fun (bkt, modName, funcName, _) -> (bkt, modName, funcName))
-                                    |> SourceCodeGeneration.toFSharpGenMapFunction funcName config.sourcePartitions 
-                                    |> SourceCodeGeneration.toFSharpModule namespaceName mapModule 
-                                    |> String.concatenate Environment.NewLine
-                                    |> SourceCodeGeneration.writeFSharpSource folder mapModule
-                                    |> Async.RunSynchronously
-                                    
-            // return module files in correct project order
-            let result = moduleFilePaths @ [ mapModuleFilePath ]
-            return result
-            
+    let generateSolarSystemSource folder (regions: seq<SolarSystemData>)=
+        async {
+            let id (r: SolarSystemData) = r.id
+            let funcName = "getSolarSystem"
+            let modulePrefix = "SolarSystems"
+            let mapModule = modulePrefix
+
+            return! regions |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+        }               
+
+    let generatePlanetSource folder (regions: seq<PlanetData>)=
+        async {
+            let id (r: PlanetData) = r.id
+            let funcName = "getPlanet"
+            let modulePrefix = "Planets"
+            let mapModule = modulePrefix
+
+            return! regions |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+        }               
+
+    
+    let generateAsteroidBeltSource folder (regions: seq<AsteroidBeltData>)=
+        async {
+            let id (r: AsteroidBeltData) = r.id
+            let funcName = "getAsteroidBelt"
+            let modulePrefix = "AsteroidBelts"
+            let mapModule = modulePrefix
+
+            return! regions |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+        }               
+
+    let generateStarSource folder (regions: seq<StarData>)=
+        async {
+            let id (r: StarData) = r.id
+            let funcName = "getStar"
+            let modulePrefix = "Stars"
+            let mapModule = modulePrefix
+
+            return! regions |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+        }               
+
+    
+    let generateStargateSource folder (regions: seq<StargateData>)=
+        async {
+            let id (r: StargateData) = r.id
+            let funcName = "getStargate"
+            let modulePrefix = "Stargates"
+            let mapModule = modulePrefix
+
+            return! regions |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+        }               
+
+    
+    let generateStationSource folder (regions: seq<StationData>)=
+        async {
+            let id (r: StationData) = r.id
+            let funcName = "getStation"
+            let modulePrefix = "Stations"
+            let mapModule = modulePrefix
+
+            return! regions |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
         }               
 
     let generateUniverse() =
@@ -167,22 +216,33 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
             let! entitiesModuleFilePath = generateUniverseTypes rootFolder
             
-            let! regionModuleFilePaths = generateRegions rootFolder
+            let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
+            let! regionModuleFilePaths = regions |> generateRegionsSource rootFolder
 
             let! constellations = EsiFiles.constellations sourcePath |> Async.map (Seq.map toConstellation >> Array.ofSeq)
-            let cs = constellations |> Array.map SourceCodeGeneration.toFSharpRecordInstanceSource
+            let! constellationModuleFilePaths = constellations |> generateConstellationsSource rootFolder
 
             let! solarSystems = EsiFiles.solarSystems sourcePath  |> Async.map (Seq.map toSolarSystem >> Array.ofSeq)
-            let ss = solarSystems |> Array.map SourceCodeGeneration.toFSharpRecordInstanceSource
+            let! solarSystemsModuleFilePaths = solarSystems |> generateSolarSystemSource rootFolder
+            
+            let! planets = EsiFiles.planets sourcePath |> Async.map (Seq.map toPlanet >> Array.ofSeq )
+            let! planetsFilePaths = planets |> generatePlanetSource rootFolder
 
-            let! planets = EsiFiles.planets sourcePath |> Async.map (Seq.map toPlanet >> Seq.length )
+            let! stargates = EsiFiles.stargates sourcePath |> Async.map (Seq.map toStargate >> Array.ofSeq)
+            let! stargatesFilePaths = stargates |> generateStargateSource rootFolder
+
+            let! belts = EsiFiles.belts sourcePath |> Async.map (Seq.map toBelt >> Array.ofSeq)
+            let! beltsFilePaths = belts |> generateAsteroidBeltSource rootFolder
+
+            let! stars = EsiFiles.stars sourcePath |> Async.map (Seq.map toStar >> Array.ofSeq)
+            let starsFilePaths = stars |> generateStarSource rootFolder
+
+            let! stations = EsiFiles.stations sourcePath |> Async.map (Seq.map toStation >> Array.ofSeq)
+            let! stationsFilePaths = stations |> generateStationSource rootFolder
 
             let! moons = EsiFiles.moons sourcePath |> Async.map (Seq.map toMoon >> Seq.length)
-            let! stargates = EsiFiles.stargates sourcePath |> Async.map (Seq.map toStargate >> Seq.length)
             
-            let! belts = EsiFiles.belts sourcePath |> Async.map (Seq.map toBelt >> Array.ofSeq)
-            let! stars = EsiFiles.stars sourcePath |> Async.map (Seq.map toStar >> Array.ofSeq)
-        
+
             return true
         }
 

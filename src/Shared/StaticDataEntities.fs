@@ -73,7 +73,7 @@ type StationData =
         position:               PositionData;
         typeId:                 int;
         services:               string[];
-        maxDockableShipVolume:  int64;
+        maxDockableShipVolume:  int;
     }
 
 type StarData= 

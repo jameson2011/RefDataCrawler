@@ -79,11 +79,11 @@ module SourceCodeGeneration=
             | :? int32 as x -> string x
             | :? int64 as x -> string x
             | :? string as x -> sprintf "\"%s\"" x
-            | :? float as x -> string x 
+            | :? float as x -> sprintf "%f" x
             | :? (int[]) as xs -> arrayValues xs
             | :? (string[]) as xs -> arrayValues xs
             // TODO: nested object? PositionData is automatic...
-            | _ -> string value 
+            | _ -> (string value).Replace('\n', ' ').Replace('\r', ' ')
 
         
         let typeName = value.GetType().Name
@@ -123,4 +123,44 @@ module SourceCodeGeneration=
             do! Io.writeJson filePath source
 
             return filePath
+        }
+
+    let generateEntitiesSource folder sourcePartitions namespaceName (id: 'a -> int) funcName funcModulePrefix mapModule (values: seq<'a>) =
+        async {
+
+            // Below can be factored out
+            let moduleName prefix b = (sprintf "%s%i" prefix b)
+            
+            let moduleFuncs = 
+                    values    |> partitionEntitiesById sourcePartitions id
+                              |> Seq.groupBy fst
+                              |> Seq.map (fun (bkt,xs) ->   (bkt, xs |> Seq.map snd |> Array.ofSeq))
+                              |> Seq.map (fun (bkt,xs) ->   let funcSource = xs |> toFSharpGenEntityFunction funcName id toFSharpRecordInstanceSource 
+                                                            (bkt, (moduleName funcModulePrefix bkt), funcName, funcSource))
+                              
+                              
+            
+            let modules = 
+                moduleFuncs 
+                                |> Seq.map (fun (bkt, modName, funcName, source) -> let moduleSource = toFSharpModule namespaceName modName source  
+                                                                                                            |> String.concatenate Environment.NewLine
+                                                                                    let moduleFilePath = writeFSharpSource folder modName moduleSource 
+                                                                                                            |> Async.RunSynchronously 
+                                                                                    (bkt, modName, funcName, moduleFilePath) )
+                                |> Array.ofSeq
+
+            let moduleFilePaths = modules |> Seq.map (fun (_,_,_,path) -> path) |> List.ofSeq
+
+            // generate a module that indexes all modules/functions
+            let mapModuleFilePath = 
+                            modules |> Seq.map (fun (bkt, modName, funcName, _) -> (bkt, modName, funcName))
+                                    |> toFSharpGenMapFunction funcName sourcePartitions 
+                                    |> toFSharpModule namespaceName mapModule 
+                                    |> String.concatenate Environment.NewLine
+                                    |> writeFSharpSource folder mapModule
+                                    |> Async.RunSynchronously
+                                    
+            // return module files in correct project order
+            let result = moduleFilePaths @ [ mapModuleFilePath ]
+            return result
         }
