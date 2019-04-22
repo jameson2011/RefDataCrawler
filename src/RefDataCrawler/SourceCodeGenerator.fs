@@ -98,9 +98,8 @@ type SourceCodeGenerator(config: GenerateConfig)=
                                                         z = float value.Position.Z};
         }
 
-    let generateUniverse() =
+    let generateUniverseTypes folder =
         async {
-            
             let recordTypeSources = [ typedefof<PositionData>;
                                         typedefof<RegionData>; typedefof<ConstellationData>; typedefof<SolarSystemData>;
                                         typedefof<PlanetData>; typedefof<StarData>; typedefof<StargateData>;
@@ -109,9 +108,17 @@ type SourceCodeGenerator(config: GenerateConfig)=
                                         |> SourceCodeGeneration.toFSharpTypeDefs namespaceName
                                         |> String.concatenate Environment.NewLine
                                         
-            let! recordTypesPath = "Entities.fs" |> Io.path "Universe" |> Io.path destinationPath |> Io.createFolder
-            //do! Io.writeJson recordTypesPath recordTypeSources
+            let! recordTypesPath = SourceCodeGeneration.writeFSharpSource folder "Entities" recordTypeSources
+            
+            return recordTypesPath   
+        }
 
+    let generateUniverse() =
+        async {
+            let! rootFolder = "Universe" |> Io.path destinationPath |> Io.createFolder
+
+            let! entitiesSourcePath = generateUniverseTypes rootFolder
+            
             let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
             let rs = regions |> Array.map SourceCodeGeneration.toFSharpRecordInstanceSource
             // TODO: need a way to index / get these... and partition files !

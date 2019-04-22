@@ -86,3 +86,13 @@ module SourceCodeGeneration=
         
                 yield! definitions 
             }
+
+    let writeFSharpSource folder filename source =
+        async {
+
+            let filePath = filename |> sprintf "%s.fs" |> Io.path folder
+
+            do! Io.writeJson filePath source
+
+            return filePath
+        }
