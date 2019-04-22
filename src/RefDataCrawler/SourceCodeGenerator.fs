@@ -5,10 +5,12 @@ open DotNetStaticData
 
 type SourceCodeGenerator(config: GenerateConfig)=
 
+    let namespaceName = "StaticData"
+
     let sourcePath = config.sourcePath
+    let destinationPath = config.targetPath
     
     let toRegion (id: string, value: Region.Root) = 
-        
         { RegionData.id = value.RegionId; 
                     name = value.Name; 
                     constellationIds = value.Constellations; 
@@ -25,7 +27,6 @@ type SourceCodeGenerator(config: GenerateConfig)=
                             }
 
     let toSolarSystem (id: string, value: SolarSystem.Root) =
-        
         let planets = safeDefault (fun () -> value.Planets) [||]
         let belts = planets |> Array.collect (fun p -> safeDefault (fun () -> p.AsteroidBelts) [||] )
         let moons = planets |> Array.collect (fun p -> safeDefault (fun () -> p.Moons) [||] )
@@ -45,7 +46,6 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         stationIds = safeDefault (fun () -> value.Stations) [||];
                         }
         
-
     let toPlanet (id: string, value: Planet.Root) =
         {
             PlanetData.id = value.PlanetId;
@@ -98,14 +98,32 @@ type SourceCodeGenerator(config: GenerateConfig)=
                                                         z = float value.Position.Z};
         }
 
-    let walkOverAll() =
+    let generateUniverse() =
         async {
-            let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Seq.length)
             
-            let! constellations = EsiFiles.constellations sourcePath |> Async.map (Seq.map toConstellation >> Seq.length)
-            
-            let! solarSystems = EsiFiles.solarSystems sourcePath  |> Async.map (Seq.map toSolarSystem >> Seq.length)
+            let recordTypeSources = [ typedefof<PositionData>;
+                                        typedefof<RegionData>; typedefof<ConstellationData>; typedefof<SolarSystemData>;
+                                        typedefof<PlanetData>; typedefof<StarData>; typedefof<StargateData>;
+                                        typedefof<AsteroidBeltData>; typedefof<MoonData>; typedefof<StationData>]
+                                        |> Seq.map SourceCodeGeneration.toFSharpRecordSource 
+                                        |> SourceCodeGeneration.toFSharpTypeDefs namespaceName
+                                        |> String.concatenate Environment.NewLine
+                                        
+            let! recordTypesPath = "Entities.fs" |> Io.path "Universe" |> Io.path destinationPath |> Io.createFolder
+            //do! Io.writeJson recordTypesPath recordTypeSources
+
+            let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
+            let rs = regions |> Array.map SourceCodeGeneration.toFSharpRecordInstanceSource
+            // TODO: need a way to index / get these... and partition files !
+
+            let! constellations = EsiFiles.constellations sourcePath |> Async.map (Seq.map toConstellation >> Array.ofSeq)
+            let cs = constellations |> Array.map SourceCodeGeneration.toFSharpRecordInstanceSource
+
+            let! solarSystems = EsiFiles.solarSystems sourcePath  |> Async.map (Seq.map toSolarSystem >> Array.ofSeq)
+            let ss = solarSystems |> Array.map SourceCodeGeneration.toFSharpRecordInstanceSource
+
             let! planets = EsiFiles.planets sourcePath |> Async.map (Seq.map toPlanet >> Seq.length )
+
             let! moons = EsiFiles.moons sourcePath |> Async.map (Seq.map toMoon >> Seq.length)
             let! stargates = EsiFiles.stargates sourcePath |> Async.map (Seq.map toStargate >> Seq.length)
             
@@ -118,9 +136,8 @@ type SourceCodeGenerator(config: GenerateConfig)=
     let startGeneration() =
         
         ConsoleUtils.info "Starting..."
-
-        // TODO: 
-        walkOverAll() |> Async.RunSynchronously |> ignore
+        
+        generateUniverse() |> Async.RunSynchronously |> ignore
         
         ConsoleUtils.info "Done."
 
