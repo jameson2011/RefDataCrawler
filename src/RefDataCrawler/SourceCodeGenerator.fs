@@ -126,14 +126,22 @@ type SourceCodeGenerator(config: GenerateConfig)=
             return recordTypesPath   
         }
 
-    let generateRegionsSource folder (values: seq<RegionData>)=
+    let generateRegionsSource folder (values: RegionData[])=
         async {
             let id (r: RegionData) = r.id
             let funcName = "getRegion"
             let modulePrefix = "Regions"
             let mapModule = modulePrefix
 
-            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+            // TODO: we need a way to reference all...
+
+            let regionIds = values |> Seq.map id 
+            
+            let enumeratorFunction = SourceCodeGeneration.toFSharpEntityEnumeratorFunction "regions" funcName regionIds 
+                                        |> List.ofSeq
+            
+
+            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule enumeratorFunction
         }               
 
     
@@ -144,7 +152,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let modulePrefix = "Constellations"
             let mapModule = modulePrefix
 
-            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
         }               
 
     let generateSolarSystemSource folder (values: seq<SolarSystemData>)=
@@ -154,7 +162,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let modulePrefix = "SolarSystems"
             let mapModule = modulePrefix
 
-            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
         }               
 
     let generatePlanetSource folder (values: seq<PlanetData>)=
@@ -164,7 +172,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let modulePrefix = "Planets"
             let mapModule = modulePrefix
 
-            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
         }               
 
     
@@ -175,7 +183,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let modulePrefix = "AsteroidBelts"
             let mapModule = modulePrefix
 
-            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
         }               
 
     let generateStarSource folder (values: seq<StarData>)=
@@ -185,7 +193,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let modulePrefix = "Stars"
             let mapModule = modulePrefix
 
-            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
         }               
 
     
@@ -196,7 +204,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let modulePrefix = "Stargates"
             let mapModule = modulePrefix
 
-            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
         }               
 
     
@@ -207,7 +215,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let modulePrefix = "Stations"
             let mapModule = modulePrefix
 
-            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
         }               
 
     
@@ -218,7 +226,9 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let modulePrefix = "Moons"
             let mapModule = modulePrefix
 
-            return! values |> SourceCodeGeneration.generateEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule
+            let partitions = Math.primeBefore 300
+
+            return! values |> SourceCodeGeneration.generateEntitiesSource folder partitions namespaceName id funcName modulePrefix mapModule []
         }               
 
     let generateUniverse() =
@@ -228,10 +238,11 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! entitiesModuleFilePath = generateUniverseTypes rootFolder
 
             
-            // TODO:
-            let! moons = EsiFiles.moons sourcePath |> Async.map (Seq.map toMoon >> List.ofSeq)
-            let! moonFilePaths = moons |> (generateMoonSource rootFolder)
+            // TODO: as moons blow up the compiler, treat differently
+            //let! moons = EsiFiles.moons sourcePath |> Async.map (Seq.map toMoon >> List.ofSeq)
+            //let! moonFilePaths = moons |> (generateMoonSource rootFolder)
             
+
             let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
             let! regionModuleFilePaths = regions |> generateRegionsSource rootFolder
 
@@ -264,11 +275,14 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
     let startGeneration() =
         
-        ConsoleUtils.info "Starting..."
+        "Starting..." |> ConsoleUtils.info 
         
+        let start = DateTime.UtcNow
+
         generateUniverse() |> Async.RunSynchronously |> ignore
         
-        ConsoleUtils.info "Done."
+        let duration = DateTime.UtcNow - start
+        "Done. " + duration.ToString() |> ConsoleUtils.info
 
         true
 

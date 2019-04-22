@@ -59,6 +59,15 @@ module SourceCodeGeneration=
                 yield "| _ -> None" |> indent 2
             } |> List.ofSeq
         
+    let toFSharpEntityEnumeratorFunction functionName accessorFunctionName (ids: seq<int>)=
+        let ids = ids |> Seq.map string |> String.concatenate "; " |> sprintf " [| %s |] "
+        seq {
+            yield sprintf "let %s =" functionName
+            yield sprintf "let ids = %s" ids |> indent 2
+            yield sprintf "(fun () -> ids |> Seq.map %s |> Seq.filter Option.isSome |> Seq.map Option.get )" accessorFunctionName |> indent 2
+        } |> List.ofSeq
+
+        
 
     let toFSharpRecordSource (recordType: Type) =
         let property (pi: PropertyInfo) =
@@ -82,7 +91,6 @@ module SourceCodeGeneration=
             | :? float as x -> sprintf "%f" x
             | :? (int[]) as xs -> arrayValues xs
             | :? (string[]) as xs -> arrayValues xs
-            // TODO: nested object? PositionData is automatic...
             | _ -> (string value).Replace('\n', ' ').Replace('\r', ' ')
 
         
@@ -97,13 +105,13 @@ module SourceCodeGeneration=
         
         result
 
-    let toFSharpModule namespaceName moduleName (definitions: seq<string>) =
+    let toFSharpModule namespaceName internalAccess moduleName (source: seq<string>) =
         seq {
                 yield (sprintf "namespace %s" namespaceName)
                 yield "open System"
-                yield (sprintf "module %s=" moduleName)
+                yield (sprintf "module %s %s=" (if internalAccess then "internal" else "") moduleName)
         
-                yield! definitions |> Seq.map (indent 2)
+                yield! source |> Seq.map (indent 2)
             }
 
     let toFSharpTypeDefs namespaceName (definitions) =
@@ -124,10 +132,10 @@ module SourceCodeGeneration=
             return filePath
         }
 
-    let generateEntitiesSource folder sourcePartitions namespaceName (id: 'a -> int) funcName funcModulePrefix mapModule (values: seq<'a>) =
+    let generateEntitiesSource folder sourcePartitions namespaceName (id: 'a -> int) funcName funcModulePrefix mapModule (mapFuncs: string list) (values: seq<'a>) =
         async {
-
-            // Below can be factored out
+            mapModule |> sprintf "Generating %s" |> ConsoleUtils.info
+            
             let moduleName prefix b = (sprintf "%s%i" prefix b)
             
             let moduleFuncs = 
@@ -141,7 +149,7 @@ module SourceCodeGeneration=
             
             let modules = 
                 moduleFuncs 
-                                |> Seq.map (fun (bkt, modName, funcName, source) -> let moduleSource = toFSharpModule namespaceName modName source  
+                                |> Seq.map (fun (bkt, modName, funcName, source) -> let moduleSource = toFSharpModule namespaceName true modName source  
                                                                                                             |> String.concatenate Environment.NewLine
                                                                                     let moduleFilePath = writeFSharpSource folder modName moduleSource 
                                                                                                             |> Async.RunSynchronously 
@@ -151,11 +159,19 @@ module SourceCodeGeneration=
             let moduleFilePaths = modules |> Seq.map (fun (_,_,_,path) -> path) |> List.ofSeq
 
             // generate a module that indexes all modules/functions
-            let mapModuleFilePath = 
+            let mapModuleFunction = 
                             modules |> Seq.map (fun (bkt, modName, funcName, _) -> (bkt, modName, funcName))
-                                    |> toFSharpGenMapFunction funcName sourcePartitions 
-                                    |> toFSharpModule namespaceName mapModule 
+                                    |> toFSharpGenMapFunction funcName sourcePartitions
+                                    // TODO: For Regions at least, we need a way to enumerate all entities
+                                    |> List.ofSeq
+                                    
+            let mapModuleFunctions =[ mapModuleFunction; mapFuncs ] // TODO: indent?
+                                    |> List.concat
+                                    |> toFSharpModule namespaceName false mapModule 
+                                    
+            let mapModuleFilePath = mapModuleFunctions
                                     |> String.concatenate Environment.NewLine
+                                    
                                     |> writeFSharpSource folder mapModule
                                     |> Async.RunSynchronously
                                     
