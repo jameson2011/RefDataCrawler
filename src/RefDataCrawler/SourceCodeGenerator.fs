@@ -59,7 +59,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
     let toStar (id: string, value: Star.Root) =
         {
-            StarData.id = Int32.Parse id; // TODO: ???
+            StarData.id = Int32.Parse id;
                      name = value.Name;
                      solarSystemId = value.SolarSystemId;
                      typeId = value.TypeId;
@@ -90,7 +90,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
     let toBelt (id: string, value: AsteroidBelt.Root) = 
         {
-            AsteroidBeltData.id = Int32.Parse id; // TODO:
+            AsteroidBeltData.id = Int32.Parse id;
                             name = value.Name;
                             solarSystemId = value.SystemId;
                             position = { PositionData.x = float value.Position.X; 
