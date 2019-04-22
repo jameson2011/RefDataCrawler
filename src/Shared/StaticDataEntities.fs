@@ -39,3 +39,58 @@ type SolarSystemData =
         beltIds:            int[];
         moonIds:            int[];
     }
+
+type PlanetData =
+    {
+        id:                 int;
+        name:               string;
+        solarSystemId:      int;
+        position:           PositionData;
+        typeId:             int;
+    }
+
+type AsteroidBeltData =
+    {
+        id:                 int;
+        name:               string;
+        solarSystemId:      int;
+        position:           PositionData;
+    }
+
+type MoonData =
+    {
+        id:                 int;
+        name:               string;
+        solarSystemId:      int;
+        position:           PositionData;
+    }
+
+type StationData =
+    {
+        id:                     int;
+        name:                   string;
+        solarSystemId:          int;
+        position:               PositionData;
+        typeId:                 int;
+        services:               string[];
+        maxDockableShipVolume:  int64;
+    }
+
+type StarData= 
+    {
+        id:                     int;
+        name:                   string;
+        solarSystemId:          int;
+        typeId:                 int;
+    }
+
+type StargateData=
+    {
+        id:                         int;
+        name:                       string;
+        solarSystemId:              int;
+        position:                   PositionData;
+        typeId:                     int;
+        destinationSolarSystemId:   int;
+        destinationStargateId:      int;
+    }

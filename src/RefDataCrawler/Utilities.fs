@@ -12,7 +12,9 @@ module Operators=
             map()
         with
         | _ -> defaultValue
-    
+
+    let safeDefault map defaultValue =
+        (?>) defaultValue map
 
 module DateTimeOffset=
 

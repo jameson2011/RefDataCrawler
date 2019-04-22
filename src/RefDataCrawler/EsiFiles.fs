@@ -65,3 +65,5 @@ module EsiFiles=
     let moons root = allEntities root "moon" Moon.Parse
 
     let stations root = allEntities root "station" Station.Parse
+
+    let stargates root = allEntities root "stargate" Stargate.Parse
