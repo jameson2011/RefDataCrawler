@@ -64,3 +64,24 @@ module Async =
             
             return map r
         }
+
+module Math =
+    
+    // source:http://www.fssnip.net/3X
+    let allPrimes =
+        let isPrime n =
+            let sqrt' = (float >> sqrt >> int) n 
+            [ 2 .. sqrt' ] 
+            |> List.forall (fun x -> n % x <> 0) 
+        let rec allPrimes' n =
+            seq { 
+                if isPrime n then
+                    yield n
+                yield! allPrimes' (n+1) 
+            }
+        allPrimes' 2
+      
+    let primeBefore limit = 
+        let primes = allPrimes
+        primes |> Seq.takeWhile (fun p -> p <= limit) |> Seq.rev |> Seq.head
+
