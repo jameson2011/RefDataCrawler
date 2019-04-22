@@ -2,7 +2,7 @@
   "profiles": {
     "RefDataCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "gen  --source C:\\Projects\\GitRepos\\StaticData\\data --dest C:\\Projects\\Data\\refdatacrawler\\gen7"
+      "commandLineArgs": "gen  --source C:\\Projects\\GitRepos\\StaticData\\data --dest C:\\Projects\\Data\\refdatacrawler\\GenLibTest"
     }
   }
 }

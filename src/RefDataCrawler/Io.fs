@@ -18,7 +18,11 @@ module Io=
 
             return di.FullName
         }
-        
+    
+    let deleteFile path =
+        if fileExists path then
+            File.Delete path
+
     let writeJson path (json: string) =
         async {
             use fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite)
@@ -28,7 +32,6 @@ module Io=
 
             fsw.Flush()
             fs.Flush()
-
         }
 
     let readJson path =

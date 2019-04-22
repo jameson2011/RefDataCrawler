@@ -32,13 +32,33 @@ module SourceCodeGeneration=
         | x when x = typedefof<string[]> -> "string[]"
         | x -> x.Name
         
-    let partitionEntitiesBy bucketCount (id: 'a -> int) (values: seq<'a>) =
+    let partitionEntitiesById bucketCount (id: 'a -> int) (values: seq<'a>) =
         let bucket value = (id value) % bucketCount 
         let map value = (bucket value, value)
 
         values |> Seq.map map 
 
-    
+    let toFSharpGenEntityFunction functionName (id: 'a -> int) (source: 'a -> string) (values: seq<'a>) =
+        let getCase value =
+            let id = id value
+            source value |> sprintf "| %i -> %s |> Some" id
+            
+        seq {
+            yield sprintf "let %s id = " functionName
+            yield "match id with " |> indent 1
+            yield! values |> Seq.map (getCase >> indent 1) 
+            yield "| _ -> None" |> indent 1
+            } |> Array.ofSeq
+
+    let toFSharpGenMapFunction functionName bucketCount (values: seq<int * string * string>) =
+        seq {
+                yield sprintf "let %s id = " functionName
+                yield sprintf "let bkt = id %% %i" bucketCount |> indent 1
+                yield "match bkt with" |> indent 1
+                yield! values |> Seq.map (fun (bkt,modName,funcName) -> sprintf "| %i -> %s.%s id" bkt modName funcName |> indent 2) 
+                yield "| _ -> None" |> indent 2
+            } |> List.ofSeq
+        
 
     let toFSharpRecordSource (recordType: Type) =
         let property (pi: PropertyInfo) =
@@ -99,6 +119,7 @@ module SourceCodeGeneration=
 
             let filePath = filename |> sprintf "%s.fs" |> Io.path folder
 
+            Io.deleteFile filePath
             do! Io.writeJson filePath source
 
             return filePath

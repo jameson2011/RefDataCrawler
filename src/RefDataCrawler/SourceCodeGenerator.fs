@@ -113,21 +113,61 @@ type SourceCodeGenerator(config: GenerateConfig)=
             return recordTypesPath   
         }
 
+    let generateRegions folder =
+        async {
+            let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
+            
+            let id (r: RegionData) = r.id
+            let funcName = "getRegion"
+            let modulePrefix = "Regions"
+            let mapModule = modulePrefix
+
+
+            // Below can be factored out
+            let moduleName prefix b = (sprintf "%s%i" prefix b)
+            
+            let moduleFuncs = 
+                    regions   |> SourceCodeGeneration.partitionEntitiesById config.sourcePartitions id
+                              |> Seq.groupBy fst
+                              |> Seq.map (fun (bkt,xs) ->   (bkt, xs |> Seq.map snd |> Array.ofSeq))
+                              |> Seq.map (fun (bkt,xs) ->   let funcSource = xs |> SourceCodeGeneration.toFSharpGenEntityFunction funcName id SourceCodeGeneration.toFSharpRecordInstanceSource 
+                                                            (bkt, (moduleName modulePrefix bkt), funcName, funcSource))
+                              |> Array.ofSeq
+                              
+            
+            let modules = 
+                moduleFuncs 
+                                |> Seq.map (fun (bkt, modName, funcName, source) -> let moduleSource = SourceCodeGeneration.toFSharpModule namespaceName modName source  
+                                                                                                            |> String.concatenate Environment.NewLine
+                                                                                    let moduleFilePath = SourceCodeGeneration.writeFSharpSource folder modName moduleSource 
+                                                                                                            |> Async.RunSynchronously 
+                                                                                    (bkt, modName, funcName, moduleFilePath) )
+                                |> Array.ofSeq
+
+            let moduleFilePaths = modules |> Seq.map (fun (_,_,_,path) -> path) |> List.ofSeq
+
+            // generate a module that indexes all modules/functions
+            let mapModuleFilePath = 
+                            modules |> Seq.map (fun (bkt, modName, funcName, _) -> (bkt, modName, funcName))
+                                    |> SourceCodeGeneration.toFSharpGenMapFunction funcName config.sourcePartitions 
+                                    |> SourceCodeGeneration.toFSharpModule namespaceName mapModule 
+                                    |> String.concatenate Environment.NewLine
+                                    |> SourceCodeGeneration.writeFSharpSource folder mapModule
+                                    |> Async.RunSynchronously
+                                    
+            // return module files in correct project order
+            let result = moduleFilePaths @ [ mapModuleFilePath ]
+            return result
+            
+        }               
+
     let generateUniverse() =
         async {
             let! rootFolder = "Universe" |> Io.path destinationPath |> Io.createFolder
 
-            let! entitiesSourcePath = generateUniverseTypes rootFolder
+            let! entitiesModuleFilePath = generateUniverseTypes rootFolder
             
-            let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
-            
-            let rs2 = regions |> SourceCodeGeneration.partitionEntitiesBy config.sourcePartitions (fun r -> r.id)
-                              |> Seq.sortBy (fun (p,_) -> p)
-                              |> Array.ofSeq
-
-            let rs = regions |> Array.map SourceCodeGeneration.toFSharpRecordInstanceSource
-            // TODO: need a way to index / get these... and partition files !
-
+            let! regionModuleFilePaths = generateRegions rootFolder
 
             let! constellations = EsiFiles.constellations sourcePath |> Async.map (Seq.map toConstellation >> Array.ofSeq)
             let cs = constellations |> Array.map SourceCodeGeneration.toFSharpRecordInstanceSource
