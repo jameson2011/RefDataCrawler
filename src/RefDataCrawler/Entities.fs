@@ -73,8 +73,9 @@ type CrawlerConfig =
 
 type GenerateConfig = 
     {
-        targetPath : string;
-        sourcePath : string;
+        targetPath :        string;
+        sourcePath :        string;
+        sourcePartitions:   int;
     } with
     static member TargetPathDefault = @".\src\"
     

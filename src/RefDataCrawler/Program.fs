@@ -27,7 +27,9 @@ module Program =
         
     let private generateConfig (app: CommandLine.App) =
         { GenerateConfig.sourcePath = CommandLine.getSourceFolderArg app |> Option.defaultValue @"C:\\";
-                         targetPath = CommandLine.getTargetFolderValue app |> Option.defaultValue GenerateConfig.TargetPathDefault }
+                         targetPath = CommandLine.getTargetFolderValue app |> Option.defaultValue GenerateConfig.TargetPathDefault;
+                         sourcePartitions = 11  // TODO: optimise...
+                         }
 
     let private startCrawler (app: CommandLine.App) =        
         let config = crawlerConfig app

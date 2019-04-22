@@ -120,8 +120,14 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! entitiesSourcePath = generateUniverseTypes rootFolder
             
             let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
+            
+            let rs2 = regions |> SourceCodeGeneration.partitionEntitiesBy config.sourcePartitions (fun r -> r.id)
+                              |> Seq.sortBy (fun (p,_) -> p)
+                              |> Array.ofSeq
+
             let rs = regions |> Array.map SourceCodeGeneration.toFSharpRecordInstanceSource
             // TODO: need a way to index / get these... and partition files !
+
 
             let! constellations = EsiFiles.constellations sourcePath |> Async.map (Seq.map toConstellation >> Array.ofSeq)
             let cs = constellations |> Array.map SourceCodeGeneration.toFSharpRecordInstanceSource

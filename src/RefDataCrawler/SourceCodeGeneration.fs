@@ -32,7 +32,14 @@ module SourceCodeGeneration=
         | x when x = typedefof<string[]> -> "string[]"
         | x -> x.Name
         
+    let partitionEntitiesBy bucketCount (id: 'a -> int) (values: seq<'a>) =
+        let bucket value = (id value) % bucketCount 
+        let map value = (bucket value, value)
+
+        values |> Seq.map map 
+
     
+
     let toFSharpRecordSource (recordType: Type) =
         let property (pi: PropertyInfo) =
             (pi.Name, (pi.PropertyType |> typeAlias) )
