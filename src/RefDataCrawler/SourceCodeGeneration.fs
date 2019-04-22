@@ -119,8 +119,7 @@ module SourceCodeGeneration=
 
             let filePath = filename |> sprintf "%s.fs" |> Io.path folder
 
-            Io.deleteFile filePath
-            do! Io.writeJson filePath source
+            do! Io.writeString filePath source
 
             return filePath
         }

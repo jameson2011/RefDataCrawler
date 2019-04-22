@@ -28,13 +28,13 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
                     let dataFilePath = entityId |> EsiFiles.dataFileName |> Io.path folder
                     let metaFilePath = entityId |> EsiFiles.metaFileName |> Io.path folder
                             
-                    do! Io.writeJson dataFilePath json
+                    do! Io.writeString dataFilePath json
             
                     let meta = { EntityMetadata.id = id;
                                                 entityType = entityType;
                                                 etag = etag} |> JsonConvert.SerializeObject
                         
-                    do! Io.writeJson metaFilePath meta
+                    do! Io.writeString metaFilePath meta
             
                     entityId |> postCompleted 
 

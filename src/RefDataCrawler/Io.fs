@@ -23,12 +23,12 @@ module Io=
         if fileExists path then
             File.Delete path
 
-    let writeJson path (json: string) =
+    let writeString path (value: string) =
         async {
-            use fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite)
+            use fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite)
             let fsw = new StreamWriter(fs, Encoding.UTF8)
-
-            do! fsw.WriteAsync(json) |> Async.AwaitTask
+            
+            do! fsw.WriteAsync(value) |> Async.AwaitTask
 
             fsw.Flush()
             fs.Flush()

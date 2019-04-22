@@ -257,7 +257,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! stations = EsiFiles.stations sourcePath |> Async.map (Seq.map toStation >> Array.ofSeq)
             let! stationsFilePaths = stations |> generateStationSource rootFolder
             
-            
+            // TODO: adjust .fsproj files...
 
             return true
         }
