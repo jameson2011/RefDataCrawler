@@ -16,7 +16,7 @@ module Io=
         async {
             let di = Directory.CreateDirectory(path)
 
-            return di |> ignore
+            return di.FullName
         }
         
     let writeJson path (json: string) =

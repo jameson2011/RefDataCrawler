@@ -12,14 +12,8 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
                         Io.path execPath config.targetPath
 
                         
-    do Io.createFolder rootPath |> Async.RunSynchronously
+    let _ = Io.createFolder rootPath |> Async.RunSynchronously
     
-    let createFolder path = 
-        async {
-            do! path |> Io.createFolder 
-            return path
-        }
-        
     let postCompleted (entityType, id) =
         ActorMessage.FinishedEntity (entityType, id) |> crawlStatus
 
@@ -29,7 +23,7 @@ type EntityWriterActor(log: PostMessage, crawlStatus: PostMessage, config: Crawl
             async {
                 let entityId = (entityType,id)
                 try
-                    let! folder = rootPath |> EsiFiles.entityFolder entityType |> createFolder 
+                    let! folder = rootPath |> EsiFiles.entityFolder entityType |> Io.createFolder 
                 
                     let dataFilePath = entityId |> EsiFiles.dataFileName |> Io.path folder
                     let metaFilePath = entityId |> EsiFiles.metaFileName |> Io.path folder
