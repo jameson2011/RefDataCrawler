@@ -75,6 +75,7 @@ type GenerateConfig =
     {
         targetPath :        string;
         sourcePath :        string;
+        namespacePrefix:    string;
         sourcePartitions:   int;
     } with
     static member TargetPathDefault = @".\src\"

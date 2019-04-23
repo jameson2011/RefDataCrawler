@@ -8,6 +8,8 @@ module Io=
 
     let path root subFolder = Path.Combine(root, subFolder)
 
+    let filename (path: string) = Path.GetFileName(path)
+
     let isRooted (path: string) = Path.IsPathRooted(path)
 
     let fileExists path = File.Exists path

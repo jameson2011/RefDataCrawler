@@ -3,7 +3,9 @@
 open System
 open System.Reflection
 
-module SourceCodeGeneration=
+
+module FSharpSource=
+    open System.Xml.Linq
     
     let indent count value =
         new System.String(' ', 2 * count) + value
@@ -38,7 +40,7 @@ module SourceCodeGeneration=
 
         values |> Seq.map map 
 
-    let toFSharpGenEntityFunction functionName (id: 'a -> int) (source: 'a -> string) (values: seq<'a>) =
+    let toGenEntityFunction functionName (id: 'a -> int) (source: 'a -> string) (values: seq<'a>) =
         let getCase value =
             let id = id value
             source value |> sprintf "| %i -> %s |> Some" id
@@ -50,7 +52,7 @@ module SourceCodeGeneration=
             yield "| _ -> None" |> indent 1
             } |> Array.ofSeq
 
-    let toFSharpGenMapFunction functionName bucketCount (values: seq<int * string * string>) =
+    let toGenMapFunction functionName bucketCount (values: seq<int * string * string>) =
         seq {
                 yield sprintf "let %s id = " functionName
                 yield sprintf "let bkt = id %% %i" bucketCount |> indent 1
@@ -59,7 +61,7 @@ module SourceCodeGeneration=
                 yield "| _ -> None" |> indent 2
             } |> List.ofSeq
         
-    let toFSharpEntityEnumeratorFunction functionName accessorFunctionName (ids: seq<int>)=
+    let toEntityEnumerator functionName accessorFunctionName (ids: seq<int>)=
         let ids = ids |> Seq.map string |> String.concatenate "; " |> sprintf " [| %s |] "
         seq {
             yield sprintf "let %s =" functionName
@@ -69,7 +71,7 @@ module SourceCodeGeneration=
 
         
 
-    let toFSharpRecordSource (recordType: Type) =
+    let toRecordSource (recordType: Type) =
         let property (pi: PropertyInfo) =
             (pi.Name, (pi.PropertyType |> typeAlias) )
         
@@ -79,7 +81,7 @@ module SourceCodeGeneration=
                                 |> String.concatenate "; "
         sprintf "type %s = { %s }" recordType.Name props
 
-    let rec toFSharpRecordInstanceSource (value) =
+    let rec toRecordInstance (value) =
                         
         let rec valueString (value: Object) = 
             let arrayValues values = values |> Seq.map valueString |> String.concatenate "; " |> sprintf "[| %s |]"
@@ -105,7 +107,7 @@ module SourceCodeGeneration=
         
         result
 
-    let toFSharpModule namespaceName internalAccess moduleName (source: seq<string>) =
+    let toModule namespaceName internalAccess moduleName (source: seq<string>) =
         seq {
                 yield (sprintf "namespace %s" namespaceName)
                 yield "open System"
@@ -114,7 +116,7 @@ module SourceCodeGeneration=
                 yield! source |> Seq.map (indent 2)
             }
 
-    let toFSharpTypeDefs namespaceName (definitions) =
+    let toTypeDefs namespaceName (definitions) =
         seq {
                 yield (sprintf "namespace %s" namespaceName)
                 yield "open System"
@@ -122,7 +124,7 @@ module SourceCodeGeneration=
                 yield! definitions 
             }
 
-    let writeFSharpSource folder filename source =
+    let writeSource folder filename source =
         async {
 
             let filePath = filename |> sprintf "%s.fs" |> Io.path folder
@@ -132,7 +134,7 @@ module SourceCodeGeneration=
             return filePath
         }
 
-    let generateEntitiesSource folder sourcePartitions namespaceName (id: 'a -> int) funcName funcModulePrefix mapModule (mapFuncs: string list) (values: seq<'a>) =
+    let genEntitiesSource folder sourcePartitions namespaceName (id: 'a -> int) funcName funcModulePrefix mapModule (mapFuncs: string list) (values: seq<'a>) =
         async {
             mapModule |> sprintf "Generating %s" |> ConsoleUtils.info
             
@@ -142,16 +144,17 @@ module SourceCodeGeneration=
                     values    |> partitionEntitiesById sourcePartitions id
                               |> Seq.groupBy fst
                               |> Seq.map (fun (bkt,xs) ->   (bkt, xs |> Seq.map snd |> Array.ofSeq))
-                              |> Seq.map (fun (bkt,xs) ->   let funcSource = xs |> toFSharpGenEntityFunction funcName id toFSharpRecordInstanceSource 
+                              |> Seq.sortBy (fun (bkt,_) -> bkt)
+                              |> Seq.map (fun (bkt,xs) ->   let funcSource = xs |> toGenEntityFunction funcName id toRecordInstance 
                                                             (bkt, (moduleName funcModulePrefix bkt), funcName, funcSource))
                               
                               
             
             let modules = 
                 moduleFuncs 
-                                |> Seq.map (fun (bkt, modName, funcName, source) -> let moduleSource = toFSharpModule namespaceName true modName source  
+                                |> Seq.map (fun (bkt, modName, funcName, source) -> let moduleSource = toModule namespaceName true modName source  
                                                                                                             |> String.concatenate Environment.NewLine
-                                                                                    let moduleFilePath = writeFSharpSource folder modName moduleSource 
+                                                                                    let moduleFilePath = writeSource folder modName moduleSource 
                                                                                                             |> Async.RunSynchronously 
                                                                                     (bkt, modName, funcName, moduleFilePath) )
                                 |> Array.ofSeq
@@ -161,21 +164,46 @@ module SourceCodeGeneration=
             // generate a module that indexes all modules/functions
             let mapModuleFunction = 
                             modules |> Seq.map (fun (bkt, modName, funcName, _) -> (bkt, modName, funcName))
-                                    |> toFSharpGenMapFunction funcName sourcePartitions
-                                    // TODO: For Regions at least, we need a way to enumerate all entities
+                                    |> toGenMapFunction funcName sourcePartitions
                                     |> List.ofSeq
                                     
-            let mapModuleFunctions =[ mapModuleFunction; mapFuncs ] // TODO: indent?
+            let mapModuleFunctions =[ mapModuleFunction; mapFuncs ] 
                                     |> List.concat
-                                    |> toFSharpModule namespaceName false mapModule 
+                                    |> toModule namespaceName false mapModule 
                                     
             let mapModuleFilePath = mapModuleFunctions
                                     |> String.concatenate Environment.NewLine
                                     
-                                    |> writeFSharpSource folder mapModule
+                                    |> writeSource folder mapModule
                                     |> Async.RunSynchronously
-                                    
-            // return module files in correct project order
-            let result = moduleFilePaths @ [ mapModuleFilePath ]
-            return result
+            
+            return (mapModuleFilePath, moduleFilePaths)
+        }
+
+    
+
+    let genProjectFile folder filename (topFilePaths: seq<string>) (dataFilePaths: seq<string>) (mapFilePaths: seq<string>)=
+        async {
+            
+            let targetFramework = new XElement(XName.op_Implicit("TargetFramework"), "netstandard2.0")
+            let propertyGroup = new XElement(XName.op_Implicit("PropertyGroup"), targetFramework)
+            
+            let includes = [ topFilePaths; dataFilePaths; mapFilePaths]
+                            |> Seq.collect (fun fs -> fs)
+                            |> Seq.map Io.filename
+                            |> Seq.map (fun n -> new XElement(XName.op_Implicit("Compile"), new XAttribute(XName.op_Implicit("Include"), n)))
+                            |> Array.ofSeq
+
+            let itemGroup = new XElement(XName.op_Implicit("ItemGroup"), includes) 
+
+            let proj = new XElement(XName.op_Implicit("Project"), 
+                                    new XAttribute(XName.op_Implicit("Sdk"), "Microsoft.NET.Sdk"),
+                                    propertyGroup, itemGroup)
+            
+            
+            let filePath = filename |> Io.path folder
+
+            proj.Save(filePath, SaveOptions.None)
+            
+            return true
         }

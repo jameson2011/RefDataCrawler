@@ -28,7 +28,8 @@ module Program =
     let private generateConfig (app: CommandLine.App) =
         { GenerateConfig.sourcePath = CommandLine.getSourceFolderArg app |> Option.defaultValue @"C:\\";
                          targetPath = CommandLine.getTargetFolderValue app |> Option.defaultValue GenerateConfig.TargetPathDefault;
-                         sourcePartitions = Math.primeBefore 100  
+                         sourcePartitions = Math.primeBefore 100;
+                         namespacePrefix = "StaticData";
                          }
 
     let private startCrawler (app: CommandLine.App) =        
