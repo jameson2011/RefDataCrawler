@@ -109,6 +109,14 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         maxDockableShipVolume = value.MaxDockableShipVolume;
         }
 
+    let toMarketGroup (id: string, value: MarketGroup.Root) =
+        {
+            MarketGroupData.id = value.MarketGroupId;
+                            name = value.Name;
+                            description = String.stripWhitespace value.Description;
+                            typeIds = value.Types;
+                            parentMarketGroupId = safeDefault (fun () -> Some value.ParentGroupId) None;
+        }
 
     let generateTypeDefinitions namespaceName folder (types: seq<Type>) =
         async {
@@ -238,6 +246,40 @@ type SourceCodeGenerator(config: GenerateConfig)=
             return! values |> FSharpSource.genEntitiesSource folder partitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }               
 
+    let generateMarketGroupSource namespaceName folder importedNamespaces (values: seq<MarketGroupData>) =
+        async {
+            let id (r: MarketGroupData) = r.id
+            let funcName = "getMarketGroup"
+            let modulePrefix = "MarketGroups"
+            let mapModule = modulePrefix
+
+            let moduleSources = values  |> FSharpSource.partitionValues id config.sourcePartitions 
+                                        |> FSharpSource.toPartitionedModuleFuncs id namespaceName modulePrefix funcName importedNamespaces
+                                        |> FSharpSource.toModuleSource 
+                                        |> FSharpSource.writeModuleSources folder
+
+            
+            let moduleFilePaths = moduleSources 
+                                        |> Seq.map (fun ms -> ms.filePath) 
+                                        |> Seq.reduceOptions
+                                        |> Array.ofSeq
+
+            let mapModuleFunction = moduleSources  
+                                        |> FSharpSource.genEntityMapFunctions config.sourcePartitions funcName
+                                    
+            let mapModuleFunctionsSource =
+                                    [ mapModuleFunction; ] 
+                                        |> List.concat
+                                        |> FSharpSource.toModule namespaceName false mapModule importedNamespaces
+                                        |> String.concatenate Environment.NewLine
+
+            let mapModuleFilePath = mapModuleFunctionsSource
+                                        |> FSharpSource.writeSource folder mapModule
+                                        |> Async.RunSynchronously
+
+            return (mapModuleFilePath, moduleFilePaths)
+        }
+
     let generateSharedTypes(domain: string)=
         async {
             let namespaceName = FSharpSource.namespaceName namespacePrefix domain
@@ -268,6 +310,23 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName  [] moonDataFiles [moonMapFile] [sharedTypesPath]
 
             return (namespaceName, projectFilePath)
+        }
+
+    let generateItemTypes (domain: string) (sharedTypesNamespaces: seq<string>) (sharedTypesPath: string) =
+        async {
+            let namespaceName = FSharpSource.namespaceName namespacePrefix domain
+            let projectFileName = FSharpSource.projectFileName namespaceName
+
+            let! rootFolder = namespaceName |> Io.path destinationPath |> Io.createFolder
+
+            let! marketGroups = EsiFiles.marketGroups sourcePath |> Async.map (Seq.map toMarketGroup >> Array.ofSeq)
+            let! (mapFile, dataFiles) = generateMarketGroupSource namespaceName rootFolder sharedTypesNamespaces marketGroups
+
+            
+            let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName  [] dataFiles [mapFile] [sharedTypesPath]
+
+            return (namespaceName, projectFilePath)
+            
         }
 
     let generateUniverse(domain: string) (sharedTypesNamespace: seq<string>) (sharedTypesPath: string)=
@@ -322,6 +381,8 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
         let sharedTypesNamespace, sharedTypesProject = generateSharedTypes "Entities" |> Async.RunSynchronously
         
+        generateItemTypes "ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+
         generateUniverse "Universe" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
         
         generateMoons "Moons" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore

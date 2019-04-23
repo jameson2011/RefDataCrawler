@@ -116,7 +116,7 @@ type MarketGroupData =
     {
         id:                         int;
         name:                       string;
-        parentMarketGroupId:        int;
+        parentMarketGroupId:        int option;
         typeIds:                    int[];
         description:                string;
     }

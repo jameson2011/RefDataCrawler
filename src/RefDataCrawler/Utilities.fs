@@ -52,6 +52,12 @@ module String =
     let concatenate delim (values: seq<string>) =
         System.String.Join(delim, values);
 
+    let stripWhitespace (value: string) =
+        value.Replace('\t', ' ')
+            .Replace('\r', ' ')
+            .Replace('\n', ' ' )
+        
+
 module Seq =
     let reduceOptions values =
         values  |> Seq.filter Option.isSome

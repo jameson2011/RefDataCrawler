@@ -75,3 +75,5 @@ module EsiFiles=
     let stations root = allEntities root "station" (fun j -> Station.Parse j)
 
     let stargates root = allEntities root "stargate" Stargate.Parse
+
+    let marketGroups root = allEntities root "market_group" MarketGroup.Parse

@@ -4,9 +4,33 @@ open System
 open System.Reflection
 
 
+type PartitionedModuleSource = 
+    {
+        partition:          int;
+        namespaceName:      string;
+        moduleName:         string;
+        importedNamespaces: string[];
+        funcName:           string;
+        sourceLines:        string[];
+    }
+
+type ModuleSource = 
+    {
+        partition:          int;
+        filePath:           string option;
+        namespaceName:      string;
+        moduleName:         string;
+        funcName:           string;
+        source:             string;
+    }
+
+
 module FSharpSource=
     open System.Xml.Linq
     
+    let private intOptionType = (Some 1).GetType()
+    let private floatOptionType = (Some 1.).GetType()
+
     let indent count value =
         new System.String(' ', 2 * count) + value
 
@@ -25,13 +49,16 @@ module FSharpSource=
     
     let typeAlias (t: Type) =
         match t with
-        | x when x = typedefof<int> ->      "int"
-        | x when x = typedefof<string> ->   "string"
-        | x when x = typedefof<int64> ->    "int64"
-        | x when x = typedefof<float> ->    "float"
-        | x when x = typedefof<int[]> ->    "int[]"
-        | x when x = typedefof<int64[]> ->  "int64[]"
-        | x when x = typedefof<string[]> -> "string[]"
+        | x when x = typedefof<int> ->          "int"
+        | x when x = typedefof<string> ->       "string"
+        | x when x = typedefof<int64> ->        "int64"
+        | x when x = typedefof<float> ->        "float"
+        | x when x = typedefof<bool> ->         "bool"
+        | x when x = typedefof<int[]> ->        "int[]"
+        | x when x = typedefof<int64[]> ->      "int64[]"
+        | x when x = typedefof<string[]> ->     "string[]"
+        | x when x = intOptionType ->           "int option"
+        | x when x = floatOptionType ->         "float option"
         | x -> x.Name
         
     let partitionEntitiesById bucketCount (id: 'a -> int) (values: seq<'a>) =
@@ -87,12 +114,13 @@ module FSharpSource=
             let arrayValues values = values |> Seq.map valueString |> String.concatenate "; " |> sprintf "[| %s |]"
             
             match value with
-            | :? int32 as x -> string x
-            | :? int64 as x -> string x
-            | :? string as x -> sprintf "\"%s\"" x
-            | :? float as x -> sprintf "%f" x
-            | :? (int[]) as xs -> arrayValues xs
-            | :? (string[]) as xs -> arrayValues xs
+            | :? int32 as x ->          string x
+            | :? int64 as x ->          string x
+            | :? string as x ->         sprintf "\"%s\"" x
+            | :? float as x ->          sprintf "%f" x
+            | :? (int[]) as xs ->       arrayValues xs
+            | :? (string[]) as xs ->    arrayValues xs
+            | null ->                   "None"
             | _ -> (string value).Replace('\n', ' ').Replace('\r', ' ')
 
         
@@ -136,12 +164,61 @@ module FSharpSource=
             return filePath
         }
 
+    
+    let moduleName prefix id = (sprintf "%s%i" prefix id)
+
+    // TODO: 
+    let partitionValues (partition: 'a -> int) partitions (values: seq<'a>)=
+        values  |> partitionEntitiesById partitions partition
+                |> Seq.groupBy fst
+                |> Seq.map (fun (bkt,xs) ->   (bkt, xs |> Seq.map snd |> Array.ofSeq))
+                |> Seq.sortBy (fun (bkt,_) -> bkt)
+
+    let toPartitionedModuleFuncs (partition: 'a -> int) namespaceName funcModulePrefix funcName (importedNamespaces: seq<string>) (values: seq<int * 'a[]>)=
+        values  |> Seq.map (fun (bkt,xs) -> { PartitionedModuleSource.partition = bkt;
+                                                             namespaceName = namespaceName;
+                                                             importedNamespaces = importedNamespaces |> Array.ofSeq;
+                                                             moduleName = moduleName funcModulePrefix bkt;
+                                                             funcName = funcName;
+                                                             sourceLines = xs |> toGenEntityFunction funcName partition toRecordInstance;
+                                                             })
+
+    let toModuleSource  (values: seq<PartitionedModuleSource>) =
+            let modules = 
+                values          |> Seq.map (fun pms -> let src = toModule pms.namespaceName true pms.moduleName pms.importedNamespaces pms.sourceLines
+                                                                            |> String.concatenate Environment.NewLine
+                                                       { ModuleSource.filePath = None;
+                                                                      partition = pms.partition;
+                                                                      source = src;
+                                                                      namespaceName = pms.namespaceName;
+                                                                      moduleName = pms.moduleName;
+                                                                      funcName = pms.funcName}
+                                                       )
+
+            modules
+
+    let writeModuleSources folder (values: seq<ModuleSource>) =
+        
+        let modules = values   |> Seq.map (fun v -> let moduleFilePath = writeSource folder v.moduleName v.source 
+                                                                        |> Async.RunSynchronously
+                                                    { v with filePath = Some moduleFilePath }                                                    
+                                                    )
+                                |> Array.ofSeq
+        modules
+        
+    let genEntityMapFunctions partitions funcName (modules: seq<ModuleSource>) =
+        modules |> Seq.map (fun ms -> (ms.partition, ms.moduleName, ms.funcName))
+                                    |> toGenMapFunction funcName partitions
+                                    |> List.ofSeq
+
+    
+
     let genEntitiesSource folder sourcePartitions namespaceName (id: 'a -> int) funcName funcModulePrefix mapModule (mapFuncs: string list) (importedNamespaces: seq<string>) (values: seq<'a>) =
         async {
             mapModule |> sprintf "Generating %s" |> ConsoleUtils.info
             
             let moduleName prefix b = (sprintf "%s%i" prefix b)
-            
+            // TODO: factor out
             let moduleFuncs = 
                     values    |> partitionEntitiesById sourcePartitions id
                               |> Seq.groupBy fst
