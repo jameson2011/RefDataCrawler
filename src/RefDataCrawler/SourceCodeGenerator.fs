@@ -127,9 +127,11 @@ type SourceCodeGenerator(config: GenerateConfig)=
             return! [   typedefof<PositionData>;
                         typedefof<RegionData>; typedefof<ConstellationData>; typedefof<SolarSystemData>;
                         typedefof<PlanetData>; typedefof<StarData>; typedefof<StargateData>;
-                        typedefof<AsteroidBeltData>; 
-                        typedefof<StationData>;
-                        typedefof<MoonData>;]
+                        typedefof<AsteroidBeltData>; typedefof<StationData>; typedefof<MoonData>;
+                        typedefof<CategoryData>; typedefof<GroupData>; typedefof<MarketGroupData>;
+                        typedefof<DogmaAttributeValueData>; typedefof<DogmaEffectValueData>; typedefof<ItemTypeData>;
+                        typedefof<DogmaAttributeData>; typedefof<DogmaEffectData>;
+                        ]
                         |> generateTypeDefinitions namespaceName folder
         }
 
