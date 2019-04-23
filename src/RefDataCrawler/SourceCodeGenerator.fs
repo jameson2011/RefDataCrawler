@@ -135,7 +135,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
         }
 
     
-    let generateRegionsSource namespaceName folder (values: RegionData[])=
+    let generateRegionsSource namespaceName folder importedNamespaces (values: RegionData[])=
         async {
             let id (r: RegionData) = r.id
             let funcName = "getRegion"
@@ -147,85 +147,85 @@ type SourceCodeGenerator(config: GenerateConfig)=
                                         |> List.ofSeq
             
 
-            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule enumeratorFunction
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule enumeratorFunction importedNamespaces
         }               
 
     
-    let generateConstellationsSource namespaceName folder (values: seq<ConstellationData>)=
+    let generateConstellationsSource namespaceName folder importedNamespaces (values: seq<ConstellationData>)=
         async {
             let id (r: ConstellationData) = r.id
             let funcName = "getConstellation"
             let modulePrefix = "Constellations"
             let mapModule = modulePrefix
 
-            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }               
 
-    let generateSolarSystemSource namespaceName folder (values: seq<SolarSystemData>)=
+    let generateSolarSystemSource namespaceName folder importedNamespaces (values: seq<SolarSystemData>)=
         async {
             let id (r: SolarSystemData) = r.id
             let funcName = "getSolarSystem"
             let modulePrefix = "SolarSystems"
             let mapModule = modulePrefix
 
-            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }               
 
-    let generatePlanetSource namespaceName folder (values: seq<PlanetData>)=
+    let generatePlanetSource namespaceName folder importedNamespaces (values: seq<PlanetData>)=
         async {
             let id (r: PlanetData) = r.id
             let funcName = "getPlanet"
             let modulePrefix = "Planets"
             let mapModule = modulePrefix
 
-            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }               
 
     
-    let generateAsteroidBeltSource namespaceName folder (values: seq<AsteroidBeltData>)=
+    let generateAsteroidBeltSource namespaceName folder importedNamespaces  (values: seq<AsteroidBeltData>)=
         async {
             let id (r: AsteroidBeltData) = r.id
             let funcName = "getAsteroidBelt"
             let modulePrefix = "AsteroidBelts"
             let mapModule = modulePrefix
 
-            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }               
 
-    let generateStarSource namespaceName folder (values: seq<StarData>)=
+    let generateStarSource namespaceName folder importedNamespaces (values: seq<StarData>)=
         async {
             let id (r: StarData) = r.id
             let funcName = "getStar"
             let modulePrefix = "Stars"
             let mapModule = modulePrefix
 
-            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }               
 
     
-    let generateStargateSource namespaceName folder (values: seq<StargateData>)=
+    let generateStargateSource namespaceName folder importedNamespaces (values: seq<StargateData>)=
         async {
             let id (r: StargateData) = r.id
             let funcName = "getStargate"
             let modulePrefix = "Stargates"
             let mapModule = modulePrefix
 
-            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }               
 
     
-    let generateStationSource namespaceName folder (values: seq<StationData>)=
+    let generateStationSource namespaceName folder importedNamespaces (values: seq<StationData>)=
         async {
             let id (r: StationData) = r.id
             let funcName = "getStation"
             let modulePrefix = "Stations"
             let mapModule = modulePrefix
 
-            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule []
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }               
 
     
-    let generateMoonSource namespaceName folder (values: seq<MoonData>)=
+    let generateMoonSource namespaceName folder importedNamespaces (values: seq<MoonData>)=
         async {
             let id (r: MoonData) = r.id
             let funcName = "getMoon"
@@ -234,7 +234,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
             let partitions = Math.primeBefore 300
 
-            return! values |> FSharpSource.genEntitiesSource folder partitions namespaceName id funcName modulePrefix mapModule []
+            return! values |> FSharpSource.genEntitiesSource folder partitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }               
 
     let generateSharedTypes(domain: string)=
@@ -247,12 +247,12 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! entitiesModuleFilePath = rootFolder |> generateUniverseTypes namespaceName
             
             let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName  [ entitiesModuleFilePath ] [] [] []
-            // TODO: return namespace for future inclusions
-            return projectFilePath
+            
+            return (namespaceName, projectFilePath)
         }
 
 
-    let generateMoons(domain: string) (sharedTypesPath: string)=
+    let generateMoons(domain: string) (importedNamespaces: seq<string>) (sharedTypesPath: string)=
         async {
             let namespaceName = FSharpSource.namespaceName namespacePrefix domain
             let projectFileName = FSharpSource.projectFileName namespaceName
@@ -261,15 +261,15 @@ type SourceCodeGenerator(config: GenerateConfig)=
             
             
             let! moons = EsiFiles.moons sourcePath |> Async.map (Seq.map toMoon >> Array.ofSeq)
-            let! moonMapFile, moonDataFiles = moons |> generateMoonSource namespaceName rootFolder
+            let! moonMapFile, moonDataFiles = moons |> generateMoonSource namespaceName rootFolder importedNamespaces
 
             
-            let! projectResult = FSharpSource.genProjectFile rootFolder projectFileName  [] moonDataFiles [moonMapFile] [sharedTypesPath]
+            let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName  [] moonDataFiles [moonMapFile] [sharedTypesPath]
 
-            return true
+            return (namespaceName, projectFilePath)
         }
 
-    let generateUniverse(domain: string) (sharedTypesPath: string)=
+    let generateUniverse(domain: string) (sharedTypesNamespace: seq<string>) (sharedTypesPath: string)=
         async {
             let namespaceName = FSharpSource.namespaceName namespacePrefix domain
             let projectFileName = FSharpSource.projectFileName namespaceName
@@ -278,29 +278,29 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
             // TODO: this lot is fugly...
             let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
-            let! regionMapFile, regionDataFiles = regions |> generateRegionsSource namespaceName rootFolder
+            let! regionMapFile, regionDataFiles = regions |> generateRegionsSource namespaceName rootFolder sharedTypesNamespace
 
             let! constellations = EsiFiles.constellations sourcePath |> Async.map (Seq.map toConstellation >> Array.ofSeq)
-            let! constellationMapFile, constellationDataFiles = constellations |> generateConstellationsSource namespaceName rootFolder
+            let! constellationMapFile, constellationDataFiles = constellations |> generateConstellationsSource namespaceName rootFolder sharedTypesNamespace
 
             let! solarSystems = EsiFiles.solarSystems sourcePath  |> Async.map (Seq.map toSolarSystem >> Array.ofSeq)
-            let! solarSystemMapFile, solarSystemDataFiles = solarSystems |> generateSolarSystemSource namespaceName rootFolder
+            let! solarSystemMapFile, solarSystemDataFiles = solarSystems |> generateSolarSystemSource namespaceName rootFolder sharedTypesNamespace
             
             let! planets = EsiFiles.planets sourcePath |> Async.map (Seq.map toPlanet >> Array.ofSeq )
-            let! planetMapFile, planetDataFiles = planets |> generatePlanetSource namespaceName rootFolder
+            let! planetMapFile, planetDataFiles = planets |> generatePlanetSource namespaceName rootFolder sharedTypesNamespace
 
             let! stargates = EsiFiles.stargates sourcePath |> Async.map (Seq.map toStargate >> Array.ofSeq)
-            let! stargateMapFile, stargateDataFiles = stargates |> generateStargateSource namespaceName rootFolder
+            let! stargateMapFile, stargateDataFiles = stargates |> generateStargateSource namespaceName rootFolder sharedTypesNamespace
 
             let! belts = EsiFiles.belts sourcePath |> Async.map (Seq.map toBelt >> Array.ofSeq)
-            let! beltMapFile, beltDataFiles = belts |> generateAsteroidBeltSource namespaceName rootFolder
+            let! beltMapFile, beltDataFiles = belts |> generateAsteroidBeltSource namespaceName rootFolder sharedTypesNamespace
 
             let! stars = EsiFiles.stars sourcePath |> Async.map (Seq.map toStar >> Array.ofSeq)
-            let! starMapFile, starDataFiles = stars |> generateStarSource namespaceName rootFolder
+            let! starMapFile, starDataFiles = stars |> generateStarSource namespaceName rootFolder sharedTypesNamespace
 
             
             let! stations = EsiFiles.stations sourcePath |> Async.map (Seq.map toStation >> Array.ofSeq)
-            let! stationMapFile, stationDataFiles = stations |> generateStationSource namespaceName rootFolder
+            let! stationMapFile, stationDataFiles = stations |> generateStationSource namespaceName rootFolder sharedTypesNamespace
             
             // adjust .fsproj...
             let data = [ regionDataFiles; constellationDataFiles; solarSystemDataFiles; planetDataFiles; stargateDataFiles; beltDataFiles; stationDataFiles; starDataFiles; ]
@@ -308,9 +308,9 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let maps = [ regionMapFile; constellationMapFile; solarSystemMapFile; planetMapFile; stargateMapFile; beltMapFile; stationMapFile; starMapFile]
                     
             
-            let! projectResult = FSharpSource.genProjectFile rootFolder projectFileName [] data maps [sharedTypesPath]
+            let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName [] data maps [sharedTypesPath]
 
-            return true
+            return (namespaceName, projectFilePath)
         }
 
     let startGeneration() =
@@ -319,11 +319,11 @@ type SourceCodeGenerator(config: GenerateConfig)=
         
         let start = DateTime.UtcNow
 
-        let sharedTypesProject = generateSharedTypes "Entities" |> Async.RunSynchronously
-
-        generateUniverse "Universe" sharedTypesProject |> Async.RunSynchronously |> ignore
+        let sharedTypesNamespace, sharedTypesProject = generateSharedTypes "Entities" |> Async.RunSynchronously
         
-        generateMoons "Moons" sharedTypesProject |> Async.RunSynchronously |> ignore
+        generateUniverse "Universe" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+        
+        generateMoons "Moons" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
 
         let duration = DateTime.UtcNow - start
         "Done. " + duration.ToString() |> ConsoleUtils.info

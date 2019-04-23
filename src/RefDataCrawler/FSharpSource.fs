@@ -107,11 +107,12 @@ module FSharpSource=
         
         result
 
-    let toModule namespaceName internalAccess moduleName (source: seq<string>) =
+    let toModule namespaceName internalAccess moduleName (importedNamespaces:seq<string>) (source: seq<string>) =
         seq {
                 yield (sprintf "namespace %s" namespaceName)
+                
                 yield "open System"
-                yield "open StaticData.Entities" // TODO: ????
+                yield! importedNamespaces |> Seq.map (sprintf "open %s")
                 yield (sprintf "module %s %s=" (if internalAccess then "internal" else "") moduleName)
         
                 yield! source |> Seq.map (indent 2)
@@ -135,7 +136,7 @@ module FSharpSource=
             return filePath
         }
 
-    let genEntitiesSource folder sourcePartitions namespaceName (id: 'a -> int) funcName funcModulePrefix mapModule (mapFuncs: string list) (values: seq<'a>) =
+    let genEntitiesSource folder sourcePartitions namespaceName (id: 'a -> int) funcName funcModulePrefix mapModule (mapFuncs: string list) (importedNamespaces: seq<string>) (values: seq<'a>) =
         async {
             mapModule |> sprintf "Generating %s" |> ConsoleUtils.info
             
@@ -153,7 +154,7 @@ module FSharpSource=
             
             let modules = 
                 moduleFuncs 
-                                |> Seq.map (fun (bkt, modName, funcName, source) -> let moduleSource = toModule namespaceName true modName source  
+                                |> Seq.map (fun (bkt, modName, funcName, source) -> let moduleSource = toModule namespaceName true modName importedNamespaces source  
                                                                                                             |> String.concatenate Environment.NewLine
                                                                                     let moduleFilePath = writeSource folder modName moduleSource 
                                                                                                             |> Async.RunSynchronously 
@@ -170,7 +171,7 @@ module FSharpSource=
                                     
             let mapModuleFunctions =[ mapModuleFunction; mapFuncs ] 
                                     |> List.concat
-                                    |> toModule namespaceName false mapModule 
+                                    |> toModule namespaceName false mapModule importedNamespaces
                                     
             let mapModuleFilePath = mapModuleFunctions
                                     |> String.concatenate Environment.NewLine
@@ -202,7 +203,7 @@ module FSharpSource=
 
             
             let includedProjectRefs = includedProjects 
-                                        |> Seq.map (fun p -> Io.relativePath filePath p ) // TODO: need the relative path...
+                                        |> Seq.map (fun p -> Io.relativePath filePath p ) 
                                         |> Seq.map (fun p -> new XElement(XName.op_Implicit("ProjectReference"), new XAttribute(XName.op_Implicit("Include"), p)))
                                         |> Array.ofSeq
             let includedProjectGroup = new XElement(XName.op_Implicit("ItemGroup"), includedProjectRefs ) 
