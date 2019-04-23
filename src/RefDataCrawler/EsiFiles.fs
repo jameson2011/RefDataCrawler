@@ -77,3 +77,7 @@ module EsiFiles=
     let stargates root = allEntities root "stargate" Stargate.Parse
 
     let marketGroups root = allEntities root "market_group" MarketGroup.Parse
+
+    let categories root = allEntities root "category" Category.Parse
+
+    let groups root = allEntities root "group" Group.Parse

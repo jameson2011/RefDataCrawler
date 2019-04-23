@@ -57,6 +57,7 @@ module String =
             .Replace('\r', ' ')
             .Replace('\n', ' ' )
         
+    let lower (value: string) = value.ToLower()
 
 module Seq =
     let reduceOptions values =

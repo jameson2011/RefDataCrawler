@@ -120,6 +120,7 @@ module FSharpSource=
             | :? float as x ->          sprintf "%f" x
             | :? (int[]) as xs ->       arrayValues xs
             | :? (string[]) as xs ->    arrayValues xs
+            | :? bool as x ->           string x |> String.lower
             | null ->                   "None"
             | _ -> (string value).Replace('\n', ' ').Replace('\r', ' ')
 
@@ -167,7 +168,7 @@ module FSharpSource=
     
     let moduleName prefix id = (sprintf "%s%i" prefix id)
 
-    // TODO: 
+    
     let partitionValues (partition: 'a -> int) partitions (values: seq<'a>)=
         values  |> partitionEntitiesById partitions partition
                 |> Seq.groupBy fst
@@ -218,44 +219,31 @@ module FSharpSource=
             mapModule |> sprintf "Generating %s" |> ConsoleUtils.info
             
             let moduleName prefix b = (sprintf "%s%i" prefix b)
-            // TODO: factor out
-            let moduleFuncs = 
-                    values    |> partitionEntitiesById sourcePartitions id
-                              |> Seq.groupBy fst
-                              |> Seq.map (fun (bkt,xs) ->   (bkt, xs |> Seq.map snd |> Array.ofSeq))
-                              |> Seq.sortBy (fun (bkt,_) -> bkt)
-                              |> Seq.map (fun (bkt,xs) ->   let funcSource = xs |> toGenEntityFunction funcName id toRecordInstance 
-                                                            (bkt, (moduleName funcModulePrefix bkt), funcName, funcSource))
-                              
-                              
             
-            let modules = 
-                moduleFuncs 
-                                |> Seq.map (fun (bkt, modName, funcName, source) -> let moduleSource = toModule namespaceName true modName importedNamespaces source  
-                                                                                                            |> String.concatenate Environment.NewLine
-                                                                                    let moduleFilePath = writeSource folder modName moduleSource 
-                                                                                                            |> Async.RunSynchronously 
-                                                                                    (bkt, modName, funcName, moduleFilePath) )
-                                |> Array.ofSeq
+            let moduleSources = values  |> partitionValues id sourcePartitions 
+                                        |> toPartitionedModuleFuncs id namespaceName funcModulePrefix funcName importedNamespaces
+                                        |> toModuleSource 
+                                        |> writeModuleSources folder
+                                          
+            let moduleFilePaths = moduleSources 
+                                        |> Seq.map (fun ms -> ms.filePath) 
+                                        |> Seq.reduceOptions
+                                        |> Array.ofSeq
 
-            let moduleFilePaths = modules |> Seq.map (fun (_,_,_,path) -> path) |> List.ofSeq
-
-            // generate a module that indexes all modules/functions
-            let mapModuleFunction = 
-                            modules |> Seq.map (fun (bkt, modName, funcName, _) -> (bkt, modName, funcName))
-                                    |> toGenMapFunction funcName sourcePartitions
-                                    |> List.ofSeq
-                                    
-            let mapModuleFunctions =[ mapModuleFunction; mapFuncs ] 
-                                    |> List.concat
-                                    |> toModule namespaceName false mapModule importedNamespaces
-                                    
-            let mapModuleFilePath = mapModuleFunctions
-                                    |> String.concatenate Environment.NewLine
-                                    
-                                    |> writeSource folder mapModule
-                                    |> Async.RunSynchronously
             
+            let mapModuleFunction = moduleSources  
+                                        |> genEntityMapFunctions sourcePartitions funcName
+                                    
+            let mapModuleFunctionsSource =
+                                    [ mapModuleFunction; mapFuncs; ] 
+                                        |> List.concat
+                                        |> toModule namespaceName false mapModule importedNamespaces
+                                        |> String.concatenate Environment.NewLine
+
+            let mapModuleFilePath = mapModuleFunctionsSource
+                                        |> writeSource folder mapModule
+                                        |> Async.RunSynchronously
+
             return (mapModuleFilePath, moduleFilePaths)
         }
 

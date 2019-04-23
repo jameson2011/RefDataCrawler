@@ -100,7 +100,7 @@ type CategoryData =
         id:                         int;
         name:                       string;
         published:                  bool;
-        groupIds:                   int;
+        groupIds:                   int[];
     }
 
 type GroupData =

@@ -118,6 +118,46 @@ type SourceCodeGenerator(config: GenerateConfig)=
                             parentMarketGroupId = safeDefault (fun () -> Some value.ParentGroupId) None;
         }
 
+    let toCategory (id: string, value: Category.Root) =
+        {
+            CategoryData.id = value.CategoryId;
+                         name = value.Name;
+                         published = value.Published;
+                         groupIds = value.Groups;
+        }
+
+    let toGroup (id: string, value: Group.Root) =
+        {
+            GroupData.id = value.GroupId;
+                      name = value.Name;
+                      categoryId = value.CategoryId;
+                      published = value.Published;
+                      typeIds = value.Types;
+        }
+
+    let toDogmaAttribute(id: string, value: DogmaAttribute.Root)=
+        {
+            DogmaAttributeData.id = value.AttributeId;
+                               name = value.Name;
+                               description = String.stripWhitespace value.Description;
+                               published = value.Published;
+                               unitId = value.UnitId;
+                               defaultValue = float value.DefaultValue;
+                               stackable = value.Stackable;
+                               highIsGood = value.HighIsGood;
+        }
+
+    let toDogmaEffect (id: string, value: DogmaEffect.Root) =
+        {
+            DogmaEffectData.id = value.EffectId;
+                            name = value.Name;
+                            description = String.stripWhitespace value.Description;
+                            displayName = String.stripWhitespace value.DisplayName;
+                            effectCategory = value.EffectCategory;
+                            preExpression = value.PreExpression;
+                            postExpression = value.PostExpression;
+        }
+
     let generateTypeDefinitions namespaceName folder (types: seq<Type>) =
         async {
             let recordTypeSources = 
@@ -253,32 +293,44 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let modulePrefix = "MarketGroups"
             let mapModule = modulePrefix
 
-            let moduleSources = values  |> FSharpSource.partitionValues id config.sourcePartitions 
-                                        |> FSharpSource.toPartitionedModuleFuncs id namespaceName modulePrefix funcName importedNamespaces
-                                        |> FSharpSource.toModuleSource 
-                                        |> FSharpSource.writeModuleSources folder
+            
+            let enumeratorFunction = values |> Seq.map id 
+                                        |> FSharpSource.toEntityEnumerator "marketGroups" funcName 
+                                        |> List.ofSeq
+
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule enumeratorFunction importedNamespaces
+        }
+
+    let generateCategorySource namespaceName folder importedNamespaces (values: seq<CategoryData>) =
+        async {
+            let id (r: CategoryData) = r.id
+            let funcName = "getCategory"
+            let modulePrefix = "Categories"
+            let mapModule = modulePrefix
 
             
-            let moduleFilePaths = moduleSources 
-                                        |> Seq.map (fun ms -> ms.filePath) 
-                                        |> Seq.reduceOptions
-                                        |> Array.ofSeq
+            let enumeratorFunction = values |> Seq.map id 
+                                        |> FSharpSource.toEntityEnumerator "categories" funcName 
+                                        |> List.ofSeq
 
-            let mapModuleFunction = moduleSources  
-                                        |> FSharpSource.genEntityMapFunctions config.sourcePartitions funcName
-                                    
-            let mapModuleFunctionsSource =
-                                    [ mapModuleFunction; ] 
-                                        |> List.concat
-                                        |> FSharpSource.toModule namespaceName false mapModule importedNamespaces
-                                        |> String.concatenate Environment.NewLine
-
-            let mapModuleFilePath = mapModuleFunctionsSource
-                                        |> FSharpSource.writeSource folder mapModule
-                                        |> Async.RunSynchronously
-
-            return (mapModuleFilePath, moduleFilePaths)
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule enumeratorFunction importedNamespaces
         }
+
+    let generateGroupsSource namespaceName folder importedNamespaces (values: seq<GroupData>) =
+        async {
+            let id (r: GroupData) = r.id
+            let funcName = "getGroup"
+            let modulePrefix = "Groups"
+            let mapModule = modulePrefix
+
+            
+            let enumeratorFunction = values |> Seq.map id 
+                                        |> FSharpSource.toEntityEnumerator "groups" funcName 
+                                        |> List.ofSeq
+
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule enumeratorFunction importedNamespaces
+        }
+
 
     let generateSharedTypes(domain: string)=
         async {
@@ -320,10 +372,17 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! rootFolder = namespaceName |> Io.path destinationPath |> Io.createFolder
 
             let! marketGroups = EsiFiles.marketGroups sourcePath |> Async.map (Seq.map toMarketGroup >> Array.ofSeq)
-            let! (mapFile, dataFiles) = generateMarketGroupSource namespaceName rootFolder sharedTypesNamespaces marketGroups
+            let! (mgMapFile, mgDataFiles) = generateMarketGroupSource namespaceName rootFolder sharedTypesNamespaces marketGroups
 
+            let! categories = EsiFiles.categories sourcePath |> Async.map (Seq.map toCategory >> Array.ofSeq)
+            let! (cMapFile, cDataFiles) = generateCategorySource namespaceName rootFolder sharedTypesNamespaces categories
             
-            let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName  [] dataFiles [mapFile] [sharedTypesPath]
+            let! groups = EsiFiles.groups sourcePath |> Async.map (Seq.map toGroup >> Array.ofSeq)
+            let! (gMapFile, gDataFiles) = generateGroupsSource namespaceName rootFolder sharedTypesNamespaces groups
+            
+            let mapFiles = [mgMapFile; cMapFile; gMapFile]
+            let dataFiles = [| mgDataFiles; cDataFiles; gDataFiles |] |> Array.collect id
+            let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName  [] dataFiles mapFiles [sharedTypesPath]
 
             return (namespaceName, projectFilePath)
             
