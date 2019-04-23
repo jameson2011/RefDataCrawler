@@ -1,7 +1,6 @@
 ﻿namespace RefDataCrawler
 
 open System
-open DotNetStaticData
 
 type SourceCodeGenerator(config: GenerateConfig)=
 
