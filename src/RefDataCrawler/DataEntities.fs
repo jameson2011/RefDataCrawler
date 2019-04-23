@@ -94,3 +94,84 @@ type StargateData=
         destinationSolarSystemId:   int;
         destinationStargateId:      int;
     }
+
+type CategoryData =
+    {
+        id:                         int;
+        name:                       string;
+        published:                  bool;
+        groupIds:                   int;
+    }
+
+type GroupData =
+    {
+        id:                         int;
+        name:                       string;
+        categoryId:                 int;
+        published:                  bool;
+        typeIds:                    int[];
+    }
+
+type MarketGroupData =
+    {
+        id:                         int;
+        name:                       string;
+        parentMarketGroupId:        int;
+        typeIds:                    int[];
+        description:                string;
+    }
+
+type DogmaAttributeValueData =
+    {
+        attributeId:                int;
+        value:                      float;
+    }
+
+type DogmaEffectValueData =
+    {
+        effectId:                   int;
+        isDefault:                  bool;
+    }
+
+type ItemTypeData =
+    {
+        id:                         int;
+        name:                       string;
+        published:                  bool;
+        description:                string;
+        marketGroupId:              int;
+        groupId:                    int;
+        dogmaAttributes:            DogmaAttributeValueData[];
+        dogmaEffects:               DogmaEffectValueData[];
+        capacity:                   float;
+        graphicId:                  int;
+        mass:                       float;
+        packagedVolume:             float;
+        portionSize:                int;
+        radius:                     float;
+        volume:                     float;
+    }
+
+
+type DogmaAttributeData =
+    {
+        id:                         int;
+        name:                       string;
+        description:                string;
+        published:                  bool;
+        unitId:                     int;
+        defaultValue:               float;
+        stackable:                  bool;
+        highIsGood:                 bool;
+    }
+
+type DogmaEffectData =
+    {
+        id:                         int;
+        name:                       string;
+        description:                string;
+        displayName:                string;
+        effectCategory:             int;
+        preExpression:              int;
+        postExpression:             int;
+    }

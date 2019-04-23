@@ -23,6 +23,12 @@ type Moon = JsonProvider<"./SampleMoon.json">
 type Stargate = JsonProvider<"./SampleStargate.json">
 type Station = JsonProvider<"./SampleStation.json">
 type Star = JsonProvider<"./SampleStar.json">
+type DogmaAttribute = JsonProvider<"./SampleDogmaAttribute.json">
+type DogmaEffect = JsonProvider<"./SampleDogmaEffect.json">
+type MarketGroup = JsonProvider<"./SampleMarketGroup.json">
+type Group = JsonProvider<"./SampleGroup.json">
+type Category = JsonProvider<"./SampleCategory.json">
+type ItemType = JsonProvider<"./SampleItemType.json">
 
 type EntityMetadata = {
         entityType: string;

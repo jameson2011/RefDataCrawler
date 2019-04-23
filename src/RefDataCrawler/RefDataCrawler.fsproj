@@ -22,6 +22,12 @@
     </None>
     <Content Include="SampleStar.json" />
     <None Include="SampleServerStatus.json" />
+    <None Include="SampleCategory.json" />
+    <None Include="SampleGroup.json" />
+    <None Include="SampleMarketGroup.json" />
+    <None Include="SampleDogmaAttribute.json" />
+    <None Include="SampleDogmaEffect.json" />
+    <None Include="SampleItemType.json" />
     <Compile Include="Utilities.fs" />
     <Compile Include="Entities.fs" />
     <Compile Include="ConsoleUtils.fs" />

@@ -1,0 +1,1 @@
+﻿{"attribute_id":12,"default_value":0.0,"description":"The number of low power slots on the ship.","display_name":"Low Slots","high_is_good":true,"icon_id":295,"name":"lowSlots","published":true,"stackable":true,"unit_id":122}
