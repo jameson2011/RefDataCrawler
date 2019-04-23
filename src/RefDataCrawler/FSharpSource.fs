@@ -180,7 +180,9 @@ module FSharpSource=
             return (mapModuleFilePath, moduleFilePaths)
         }
 
-    
+    let namespaceName namespacePrefix domain = sprintf "%s.%s" namespacePrefix domain
+
+    let projectFileName namespaceName = sprintf "%s.fsproj" namespaceName
 
     let genProjectFile folder filename (topFilePaths: seq<string>) (dataFilePaths: seq<string>) (mapFilePaths: seq<string>)=
         async {

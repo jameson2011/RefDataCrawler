@@ -125,13 +125,19 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
     let generateUniverseTypes namespaceName folder =
         async {
-            return! [ typedefof<PositionData>;
-                                        typedefof<RegionData>; typedefof<ConstellationData>; typedefof<SolarSystemData>;
-                                        typedefof<PlanetData>; typedefof<StarData>; typedefof<StargateData>;
-                                        typedefof<AsteroidBeltData>; 
-                                        //typedefof<MoonData>; 
-                                        typedefof<StationData> ]
-                                        |> generateTypeDefinitions namespaceName folder
+            return! [   typedefof<PositionData>;
+                        typedefof<RegionData>; typedefof<ConstellationData>; typedefof<SolarSystemData>;
+                        typedefof<PlanetData>; typedefof<StarData>; typedefof<StargateData>;
+                        typedefof<AsteroidBeltData>; 
+                        typedefof<StationData> ]
+                        |> generateTypeDefinitions namespaceName folder
+        }
+
+    
+    let generateMoonTypes namespaceName folder =
+        async {
+            return! [ typedefof<MoonData>; ]
+                        |> generateTypeDefinitions namespaceName folder
         }
 
     let generateRegionsSource namespaceName folder (values: RegionData[])=
@@ -236,10 +242,29 @@ type SourceCodeGenerator(config: GenerateConfig)=
             return! values |> FSharpSource.genEntitiesSource folder partitions namespaceName id funcName modulePrefix mapModule []
         }               
 
+    let generateMoons(domain: string) =
+        async {
+            let namespaceName = FSharpSource.namespaceName namespacePrefix domain
+            let projectFileName = FSharpSource.projectFileName namespaceName
+
+            let! rootFolder = namespaceName |> Io.path destinationPath |> Io.createFolder
+
+            let! entitiesModuleFilePath = rootFolder |> generateMoonTypes namespaceName
+
+            
+            let! moons = EsiFiles.moons sourcePath |> Async.map (Seq.map toMoon >> Array.ofSeq)
+            let! moonMapFile, moonDataFiles = moons |> generateMoonSource namespaceName rootFolder
+
+            
+            let! projectResult = FSharpSource.genProjectFile rootFolder projectFileName  [ entitiesModuleFilePath ] moonDataFiles [ moonMapFile ]
+
+            return true
+        }
+
     let generateUniverse(domain: string) =
         async {
-            let namespaceName = sprintf "%s.%s" namespacePrefix domain
-            let projectFileName = sprintf "%s.fsproj" namespaceName
+            let namespaceName = FSharpSource.namespaceName namespacePrefix domain
+            let projectFileName = FSharpSource.projectFileName namespaceName
 
             let! rootFolder = namespaceName |> Io.path destinationPath |> Io.createFolder
 
@@ -289,6 +314,8 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
         generateUniverse "Universe" |> Async.RunSynchronously |> ignore
         
+        generateMoons "Moons" |> Async.RunSynchronously |> ignore
+
         let duration = DateTime.UtcNow - start
         "Done. " + duration.ToString() |> ConsoleUtils.info
 
