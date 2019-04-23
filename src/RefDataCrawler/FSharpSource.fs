@@ -111,6 +111,7 @@ module FSharpSource=
         seq {
                 yield (sprintf "namespace %s" namespaceName)
                 yield "open System"
+                yield "open StaticData.Entities" // TODO: ????
                 yield (sprintf "module %s %s=" (if internalAccess then "internal" else "") moduleName)
         
                 yield! source |> Seq.map (indent 2)
@@ -184,28 +185,36 @@ module FSharpSource=
 
     let projectFileName namespaceName = sprintf "%s.fsproj" namespaceName
 
-    let genProjectFile folder filename (topFilePaths: seq<string>) (dataFilePaths: seq<string>) (mapFilePaths: seq<string>)=
+    let genProjectFile folder filename (topFilePaths: seq<string>) (dataFilePaths: seq<string>) (mapFilePaths: seq<string>) (includedProjects: seq<string>)=
         async {
-            
+            let filePath = filename |> Io.path folder
+
             let targetFramework = new XElement(XName.op_Implicit("TargetFramework"), "netstandard2.0")
             let propertyGroup = new XElement(XName.op_Implicit("PropertyGroup"), targetFramework)
             
-            let includes = [ topFilePaths; dataFilePaths; mapFilePaths]
-                            |> Seq.collect (fun fs -> fs)
-                            |> Seq.map Io.filename
-                            |> Seq.map (fun n -> new XElement(XName.op_Implicit("Compile"), new XAttribute(XName.op_Implicit("Include"), n)))
-                            |> Array.ofSeq
+            let fileIncludes = [ topFilePaths; dataFilePaths; mapFilePaths]
+                                |> Seq.collect (fun fs -> fs)
+                                |> Seq.map Io.filename
+                                |> Seq.map (fun n -> new XElement(XName.op_Implicit("Compile"), new XAttribute(XName.op_Implicit("Include"), n)))
+                                |> Array.ofSeq
 
-            let itemGroup = new XElement(XName.op_Implicit("ItemGroup"), includes) 
+            let fileItemGroup = new XElement(XName.op_Implicit("ItemGroup"), fileIncludes) 
+
+            
+            let includedProjectRefs = includedProjects 
+                                        |> Seq.map (fun p -> Io.relativePath filePath p ) // TODO: need the relative path...
+                                        |> Seq.map (fun p -> new XElement(XName.op_Implicit("ProjectReference"), new XAttribute(XName.op_Implicit("Include"), p)))
+                                        |> Array.ofSeq
+            let includedProjectGroup = new XElement(XName.op_Implicit("ItemGroup"), includedProjectRefs ) 
 
             let proj = new XElement(XName.op_Implicit("Project"), 
                                     new XAttribute(XName.op_Implicit("Sdk"), "Microsoft.NET.Sdk"),
-                                    propertyGroup, itemGroup)
+                                    propertyGroup, fileItemGroup, includedProjectGroup)
             
             
-            let filePath = filename |> Io.path folder
+            
 
             proj.Save(filePath, SaveOptions.None)
             
-            return true
+            return filePath
         }

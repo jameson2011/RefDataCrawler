@@ -10,6 +10,15 @@ module Io=
 
     let filename (path: string) = Path.GetFileName(path)
 
+    let relativePath (sourcePath: string) (filePath: string) = 
+        let rootFolder = Path.GetDirectoryName(sourcePath)
+        let fileFolder = Path.GetDirectoryName(filePath)
+        
+        let adjustedFolder = System.IO.Path.GetRelativePath(rootFolder, fileFolder)
+
+        filePath |> filename |> path adjustedFolder
+        
+
     let isRooted (path: string) = Path.IsPathRooted(path)
 
     let fileExists path = File.Exists path
