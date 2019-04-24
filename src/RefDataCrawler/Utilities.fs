@@ -56,6 +56,7 @@ module String =
         value.Replace('\t', ' ')
             .Replace('\r', ' ')
             .Replace('\n', ' ' )
+            .Replace('\"', ' ')
         
     let lower (value: string) = value.ToLower()
 

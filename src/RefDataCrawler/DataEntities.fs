@@ -159,7 +159,7 @@ type DogmaAttributeData =
         name:                       string;
         description:                string;
         published:                  bool;
-        unitId:                     int;
+        unitId:                     int option;
         defaultValue:               float;
         stackable:                  bool;
         highIsGood:                 bool;

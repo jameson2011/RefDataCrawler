@@ -140,11 +140,11 @@ type SourceCodeGenerator(config: GenerateConfig)=
             DogmaAttributeData.id = value.AttributeId;
                                name = value.Name;
                                description = String.stripWhitespace value.Description;
-                               published = value.Published;
-                               unitId = value.UnitId;
+                               published = safeDefault (fun () -> value.Published) false;
+                               unitId = safeDefault (fun () -> Some value.UnitId ) None;
                                defaultValue = float value.DefaultValue;
-                               stackable = value.Stackable;
-                               highIsGood = value.HighIsGood;
+                               stackable = safeDefault (fun () -> value.Stackable) false;
+                               highIsGood = safeDefault (fun () -> value.HighIsGood) false;
         }
 
     let toDogmaEffect (id: string, value: DogmaEffect.Root) =
@@ -331,6 +331,36 @@ type SourceCodeGenerator(config: GenerateConfig)=
             return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule enumeratorFunction importedNamespaces
         }
 
+    
+    let generateDogmaAttributesSource namespaceName folder importedNamespaces (values: seq<DogmaAttributeData>) =
+        async {
+            let id (r: DogmaAttributeData) = r.id
+            let funcName = "getDogmaAttribute"
+            let modulePrefix = "DogmaAttributes"
+            let mapModule = modulePrefix
+
+            // TODO: find dupe names!
+            // TODO: generate enumerations file from names + IDs
+
+            let enumeratorFunction = values |> Seq.map id 
+                                        |> FSharpSource.toEntityEnumerator "dogmaAttributes" funcName 
+                                        |> List.ofSeq
+
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule enumeratorFunction importedNamespaces
+        }
+
+    
+    let generateDogmaEffectsSource namespaceName folder importedNamespaces (values: seq<DogmaEffectData>) =
+        async {
+            let id (r: DogmaEffectData) = r.id
+            let funcName = "getDogmaEffect"
+            let modulePrefix = "DogmaEffects"
+            let mapModule = modulePrefix
+
+            
+
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
+        }
 
     let generateSharedTypes(domain: string)=
         async {
@@ -380,8 +410,15 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! groups = EsiFiles.groups sourcePath |> Async.map (Seq.map toGroup >> Array.ofSeq)
             let! (gMapFile, gDataFiles) = generateGroupsSource namespaceName rootFolder sharedTypesNamespaces groups
             
-            let mapFiles = [mgMapFile; cMapFile; gMapFile]
-            let dataFiles = [| mgDataFiles; cDataFiles; gDataFiles |] |> Array.collect id
+            let! dogmaAttrs = EsiFiles.dogmaAttributes sourcePath |> Async.map (Seq.map toDogmaAttribute >> Array.ofSeq)
+            let! (daMapFile, daDataFiles) = generateDogmaAttributesSource namespaceName rootFolder sharedTypesNamespaces dogmaAttrs
+
+            let! dogmaEffects = EsiFiles.dogmaEffect sourcePath |> Async.map (Seq.map toDogmaEffect >> Array.ofSeq)
+            let! (deMapFile, deDataFiles) = generateDogmaEffectsSource namespaceName rootFolder sharedTypesNamespaces dogmaEffects
+
+
+            let mapFiles = [mgMapFile; cMapFile; gMapFile; daMapFile; deMapFile]
+            let dataFiles = [| mgDataFiles; cDataFiles; gDataFiles; daDataFiles; deDataFiles |] |> Array.collect id
             let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName  [] dataFiles mapFiles [sharedTypesPath]
 
             return (namespaceName, projectFilePath)
