@@ -114,14 +114,16 @@ module FSharpSource=
             let arrayValues values = values |> Seq.map valueString |> String.concatenate "; " |> sprintf "[| %s |]"
             
             match value with
-            | :? int32 as x ->          string x
-            | :? int64 as x ->          (string x) + "L" 
-            | :? string as x ->         sprintf "\"%s\"" x
-            | :? float as x ->          sprintf "%f" x
-            | :? (int[]) as xs ->       arrayValues xs
-            | :? (string[]) as xs ->    arrayValues xs
-            | :? bool as x ->           string x |> String.lower
-            | null ->                   "None"
+            | :? int32 as x ->              string x
+            | :? int64 as x ->              (string x) + "L" 
+            | :? string as x ->             sprintf "\"%s\"" x
+            | :? float as x ->              sprintf "%f" x
+            | :? (int[]) as xs ->           arrayValues xs
+            | :? (string[]) as xs ->        arrayValues xs
+            | :? bool as x ->               string x |> String.lower
+            | :? (PlanetRefData[]) as xs -> arrayValues xs
+            | :? PlanetRefData as pd ->     sprintf "{ PlanetRefData.planetId = %i; moonIds=%s; beltIds= %s }" pd.planetId (arrayValues pd.moonIds) (arrayValues pd.beltIds) // TODO:
+            | null ->                       "None"
             | _ -> (string value).Replace('\n', ' ').Replace('\r', ' ')
 
         

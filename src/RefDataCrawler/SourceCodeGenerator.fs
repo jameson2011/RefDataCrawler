@@ -25,10 +25,13 @@ type SourceCodeGenerator(config: GenerateConfig)=
                             }
 
     let toSolarSystem (id: string, value: SolarSystem.Root) =
+        
         let planets = safeDefault (fun () -> value.Planets) [||]
-        let belts = planets |> Array.collect (fun p -> safeDefault (fun () -> p.AsteroidBelts) [||] )
-        let moons = planets |> Array.collect (fun p -> safeDefault (fun () -> p.Moons) [||] )
-
+                        |> Array.map (fun p -> { PlanetRefData.planetId = p.PlanetId;
+                                                             moonIds = (safeDefault (fun () -> p.Moons) [||]);
+                                                             beltIds = (safeDefault (fun () -> p.AsteroidBelts) [||]); 
+                                                             } )
+        
         { SolarSystemData.id = value.SystemId;
                         name = value.Name;
                         constellationId = value.ConstellationId;
@@ -38,9 +41,9 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         secClass = value.SecurityClass;
                         secStatus = float value.SecurityStatus;
                         starIds = safeDefault (fun () -> [| value.StarId |] ) [||] ;
-                        planetIds = planets |> Array.map (fun p -> p.PlanetId);
-                        beltIds = belts;
-                        moonIds = moons;
+                        planetIds = planets ;// |> Array.map (fun p -> p.PlanetId);
+                        //beltIds = belts;
+                        //moonIds = moons;
                         stargateIds = safeDefault (fun () -> value.Stargates) [||];
                         stationIds = safeDefault (fun () -> value.Stations) [||];
                         }
@@ -178,7 +181,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
     let generateUniverseTypes namespaceName folder =
         async {
-            return! [   typedefof<PositionData>;
+            return! [   typedefof<PositionData>; typedefof<PlanetRefData>;
                         typedefof<RegionData>; typedefof<ConstellationData>; typedefof<SolarSystemData>;
                         typedefof<PlanetData>; typedefof<StarData>; typedefof<StargateData>;
                         typedefof<AsteroidBeltData>; typedefof<StationData>; typedefof<MoonData>;
@@ -436,7 +439,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
             let! rootFolder = namespaceName |> Io.path destinationPath |> Io.createFolder
 
-            // TODO: this lot is fugly...
+            
             let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
             let! regionMapFile, regionDataFiles = regions |> generateRegionsSource namespaceName rootFolder sharedTypesNamespace
 

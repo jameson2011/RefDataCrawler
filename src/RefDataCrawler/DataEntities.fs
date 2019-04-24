@@ -25,6 +25,12 @@ type ConstellationData =
         position:           PositionData;
     }
 
+type PlanetRefData =
+    {
+        planetId:           int;
+        moonIds:            int[];
+        beltIds:            int[];
+    }
 type SolarSystemData =
     {
         id:                 int;
@@ -36,9 +42,7 @@ type SolarSystemData =
         stargateIds:        int[];
         stationIds:         int[];
         starIds:            int[];
-        planetIds:          int[];
-        beltIds:            int[];
-        moonIds:            int[];
+        planetIds:          PlanetRefData[];
     }
 
 type PlanetData =
