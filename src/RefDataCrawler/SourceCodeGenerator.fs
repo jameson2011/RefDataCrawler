@@ -35,6 +35,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         position = { PositionData.x = float value.Position.X; 
                                                     y = float value.Position.Y; 
                                                     z = float value.Position.Z};
+                        secClass = value.SecurityClass;
                         secStatus = float value.SecurityStatus;
                         starIds = safeDefault (fun () -> [| value.StarId |] ) [||] ;
                         planetIds = planets |> Array.map (fun p -> p.PlanetId);
