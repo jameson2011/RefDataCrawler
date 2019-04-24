@@ -11,7 +11,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
     let toRegion (id: string, value: Region.Root) = 
         { RegionData.id = value.RegionId; 
                     name = value.Name; 
-                    constellationIds = value.Constellations; 
+                    constellationIds = value.Constellations;
                     }
 
     let toConstellation (id: string, value: Constellation.Root) =
@@ -61,6 +61,11 @@ type SourceCodeGenerator(config: GenerateConfig)=
                      name = value.Name;
                      solarSystemId = value.SolarSystemId;
                      typeId = value.TypeId;
+                     age = value.Age;
+                     luminosity = float value.Luminosity;
+                     spectralClass = value.SpectralClass;
+                     radius = value.Radius;
+                     temperature = value.Temperature;
         }
 
     let toStargate (id: string, value: Stargate.Root) =
@@ -339,9 +344,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let modulePrefix = "DogmaAttributes"
             let mapModule = modulePrefix
 
-            // TODO: find dupe names!
-            // TODO: generate enumerations file from names + IDs
-
+            
             let enumeratorFunction = values |> Seq.map id 
                                         |> FSharpSource.toEntityEnumerator "dogmaAttributes" funcName 
                                         |> List.ofSeq

@@ -115,7 +115,7 @@ module FSharpSource=
             
             match value with
             | :? int32 as x ->          string x
-            | :? int64 as x ->          string x
+            | :? int64 as x ->          (string x) + "L" 
             | :? string as x ->         sprintf "\"%s\"" x
             | :? float as x ->          sprintf "%f" x
             | :? (int[]) as xs ->       arrayValues xs

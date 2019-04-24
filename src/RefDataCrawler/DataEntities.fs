@@ -82,6 +82,11 @@ type StarData=
         name:                   string;
         solarSystemId:          int;
         typeId:                 int;
+        age:                    int64;
+        luminosity:             float;
+        radius:                 int64;
+        spectralClass:          string;
+        temperature:            int;
     }
 
 type StargateData=
