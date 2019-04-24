@@ -9,6 +9,13 @@ type PositionData =
         z: float;
     } 
 
+type SystemSecurity =
+    | Highsec
+    | Lowsec 
+    | Nullsec
+    | Wormhole 
+    | Abyssal
+
 type RegionData = 
     { 
         id:                 int;

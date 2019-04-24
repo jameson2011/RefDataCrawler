@@ -93,3 +93,15 @@ module Math =
         let primes = allPrimes
         primes |> Seq.takeWhile (fun p -> p <= limit) |> Seq.rev |> Seq.head
 
+
+module Types =
+    open System
+
+    let isRecordType (t: Type) =
+        Microsoft.FSharp.Reflection.FSharpType.IsRecord(t)
+
+    let isUnion (t: Type) =
+        Microsoft.FSharp.Reflection.FSharpType.IsUnion(t)
+
+    let isEnum (t: Type) =
+        t.IsEnum

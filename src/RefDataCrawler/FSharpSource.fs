@@ -108,6 +108,14 @@ module FSharpSource=
                                 |> String.concatenate "; "
         sprintf "type %s = { %s }" recordType.Name props
 
+    let toUnionSource (unionType: Type) =
+        let cases = Microsoft.FSharp.Reflection.FSharpType.GetUnionCases(unionType)
+                    |> Seq.map (fun c -> c.Name |> sprintf "| %s")
+        seq {
+            yield sprintf "type %s = " unionType.Name
+            yield! cases
+        } |> String.concatenate Environment.NewLine
+
     let rec toRecordInstance (value) =
                         
         let rec valueString (value: Object) = 

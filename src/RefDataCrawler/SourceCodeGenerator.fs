@@ -169,19 +169,25 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
     let generateTypeDefinitions namespaceName folder (types: seq<Type>) =
         async {
-            let recordTypeSources = 
-                    types   |> Seq.map FSharpSource.toRecordSource 
+            
+            let source t = match Types.isRecordType t, Types.isUnion t with
+                            | _, true -> FSharpSource.toUnionSource t
+                            | _, _ -> FSharpSource.toRecordSource t
+                            
+
+            let typeSources = 
+                    types   |> Seq.map source
                             |> FSharpSource.toTypeDefs namespaceName
                             |> String.concatenate Environment.NewLine
                                         
-            let! recordTypesPath = FSharpSource.writeSource folder "Entities" recordTypeSources
+            let! recordTypesPath = FSharpSource.writeSource folder "Entities" typeSources
             
             return recordTypesPath   
         }
 
     let generateUniverseTypes namespaceName folder =
         async {
-            return! [   typedefof<PositionData>; typedefof<PlanetRefData>;
+            return! [   typedefof<PositionData>; typedefof<PlanetRefData>; typedefof<SystemSecurity>;
                         typedefof<RegionData>; typedefof<ConstellationData>; typedefof<SolarSystemData>;
                         typedefof<PlanetData>; typedefof<StarData>; typedefof<StargateData>;
                         typedefof<AsteroidBeltData>; typedefof<StationData>; typedefof<MoonData>;
