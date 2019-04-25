@@ -130,7 +130,7 @@ module FSharpSource=
             | :? (string[]) as xs ->        arrayValues xs
             | :? bool as x ->               string x |> String.lower
             | :? (PlanetRefData[]) as xs -> arrayValues xs
-            | :? PlanetRefData as pd ->     sprintf "{ PlanetRefData.planetId = %i; moonIds=%s; beltIds= %s }" pd.planetId (arrayValues pd.moonIds) (arrayValues pd.beltIds) // TODO:
+            | :? PlanetRefData as pd ->     sprintf "{ PlanetRefData.planetId = %i; moonIds=%s; beltIds= %s }" pd.planetId (arrayValues pd.moonIds) (arrayValues pd.beltIds)
             | null ->                       "None"
             | _ -> (string value).Replace('\n', ' ').Replace('\r', ' ')
 
