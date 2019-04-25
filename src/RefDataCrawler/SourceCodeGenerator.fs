@@ -8,6 +8,26 @@ type SourceCodeGenerator(config: GenerateConfig)=
     let sourcePath = config.sourcePath
     let destinationPath = config.targetPath
     
+    let isWormholeName (name: string) = 
+        let prefixes = [ "A-R"; "B-R"; "C-R"; "D-R"; "E-R"; "F-R"; "G-R"; "H-R"; "K-R"]
+        if prefixes |> Seq.filter (fun p -> name.StartsWith(p)) |> Seq.isEmpty |> not then
+            name.Substring(3) |> Int32.TryParse |> fst
+        else false
+
+    let isAbyssalName (name: string) = 
+        if name.StartsWith("ADR") || name.StartsWith("PR-") then
+            name.Substring(3) |> Int32.TryParse |> fst
+        else false
+        
+
+    let toSecurityRating regionName security=
+        match security, isWormholeName regionName, isAbyssalName regionName with
+        | x,_,_ when x >= 0.45 ->   SystemSecurity.Highsec
+        | x,_,_ when x >= 0.0 ->    SystemSecurity.Lowsec
+        | _,true,false ->           SystemSecurity.Wormhole 
+        | _,false,true ->           SystemSecurity.Abyssal
+        | _ ->                      SystemSecurity.Nullsec 
+
     let toRegion (id: string, value: Region.Root) = 
         { RegionData.id = value.RegionId; 
                     name = value.Name; 
@@ -24,26 +44,26 @@ type SourceCodeGenerator(config: GenerateConfig)=
                                                       z = float value.Position.Z}
                             }
 
-    let toSolarSystem (id: string, value: SolarSystem.Root) =
-        
+    let toSolarSystem (region: int -> RegionData) (id: string, value: SolarSystem.Root) =
+        let region = region value.ConstellationId
+
         let planets = safeDefault (fun () -> value.Planets) [||]
                         |> Array.map (fun p -> { PlanetRefData.planetId = p.PlanetId;
                                                              moonIds = (safeDefault (fun () -> p.Moons) [||]);
                                                              beltIds = (safeDefault (fun () -> p.AsteroidBelts) [||]); 
                                                              } )
-        
+        let secStatus = float value.SecurityStatus
         { SolarSystemData.id = value.SystemId;
                         name = value.Name;
                         constellationId = value.ConstellationId;
                         position = { PositionData.x = float value.Position.X; 
                                                     y = float value.Position.Y; 
                                                     z = float value.Position.Z};
+                        secRating = toSecurityRating region.name secStatus;
                         secClass = value.SecurityClass;
-                        secStatus = float value.SecurityStatus;
+                        secStatus = secStatus;
                         starIds = safeDefault (fun () -> [| value.StarId |] ) [||] ;
-                        planetIds = planets ;// |> Array.map (fun p -> p.PlanetId);
-                        //beltIds = belts;
-                        //moonIds = moons;
+                        planetIds = planets ;
                         stargateIds = safeDefault (fun () -> value.Stargates) [||];
                         stationIds = safeDefault (fun () -> value.Stations) [||];
                         }
@@ -449,10 +469,16 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! regions = EsiFiles.regions sourcePath |> Async.map (Seq.map toRegion >> Array.ofSeq)
             let! regionMapFile, regionDataFiles = regions |> generateRegionsSource namespaceName rootFolder sharedTypesNamespace
 
+            let getRegion id = regions |> Seq.find (fun r -> r.id = id) 
+
             let! constellations = EsiFiles.constellations sourcePath |> Async.map (Seq.map toConstellation >> Array.ofSeq)
             let! constellationMapFile, constellationDataFiles = constellations |> generateConstellationsSource namespaceName rootFolder sharedTypesNamespace
 
-            let! solarSystems = EsiFiles.solarSystems sourcePath  |> Async.map (Seq.map toSolarSystem >> Array.ofSeq)
+            let getConstellation id = constellations |> Seq.find (fun c -> c.id = id)
+
+            let getConstellationRegion = (getConstellation >> (fun c -> c.regionId) >> getRegion)
+
+            let! solarSystems = EsiFiles.solarSystems sourcePath  |> Async.map (Seq.map (toSolarSystem getConstellationRegion) >> Array.ofSeq)
             let! solarSystemMapFile, solarSystemDataFiles = solarSystems |> generateSolarSystemSource namespaceName rootFolder sharedTypesNamespace
             
             let! planets = EsiFiles.planets sourcePath |> Async.map (Seq.map toPlanet >> Array.ofSeq )
@@ -490,11 +516,12 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
         let sharedTypesNamespace, sharedTypesProject = generateSharedTypes "Entities" |> Async.RunSynchronously
         
-        generateItemTypes "ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
-
         generateUniverse "Universe" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
         
         generateMoons "Moons" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+
+        generateItemTypes "ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+
 
         let duration = DateTime.UtcNow - start
         "Done. " + duration.ToString() |> ConsoleUtils.info

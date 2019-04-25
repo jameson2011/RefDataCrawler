@@ -44,6 +44,7 @@ type SolarSystemData =
         name:               string;
         constellationId:    int;
         position:           PositionData;
+        secRating:          SystemSecurity;
         secClass:           string;
         secStatus:          float;
         stargateIds:        int[];
