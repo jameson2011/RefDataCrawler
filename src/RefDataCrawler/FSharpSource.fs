@@ -264,6 +264,8 @@ module FSharpSource=
     let genProjectFile folder filename (topFilePaths: seq<string>) (dataFilePaths: seq<string>) (mapFilePaths: seq<string>) (includedProjects: seq<string>)=
         async {
             let filePath = filename |> Io.path folder
+            
+            // TODO: assembly info!
 
             let targetFramework = new XElement(XName.op_Implicit("TargetFramework"), "netstandard2.0")
             let propertyGroup = new XElement(XName.op_Implicit("PropertyGroup"), targetFramework)
@@ -275,7 +277,7 @@ module FSharpSource=
                                 |> Array.ofSeq
 
             let fileItemGroup = new XElement(XName.op_Implicit("ItemGroup"), fileIncludes) 
-
+            let paketInclude = new XElement(XName.op_Implicit("Import"), XAttribute(XName.op_Implicit("Project"), "..\..\.paket\Paket.Restore.targets"))
             
             let includedProjectRefs = includedProjects 
                                         |> Seq.map (fun p -> Io.relativePath filePath p ) 
@@ -285,7 +287,7 @@ module FSharpSource=
 
             let proj = new XElement(XName.op_Implicit("Project"), 
                                     new XAttribute(XName.op_Implicit("Sdk"), "Microsoft.NET.Sdk"),
-                                    propertyGroup, fileItemGroup, includedProjectGroup)
+                                    propertyGroup, fileItemGroup, includedProjectGroup, paketInclude)
             
             
             
