@@ -217,6 +217,24 @@ module FSharpSource=
                                 |> Array.ofSeq
         modules
         
+    let genAssemblyInfo namespaceName =
+        seq {
+            yield sprintf "namespace %s" namespaceName
+            yield "open System.Reflection"
+            yield @"[<assembly: AssemblyConfiguration("""")>]"
+            yield @"[<assembly: AssemblyCompany("")>]"
+            yield sprintf @"[<assembly: AssemblyProduct(""%s"")>]" namespaceName
+            yield @"[<assembly: AssemblyCopyright(""Copyright © Jameson2011 2019 Data Copyright © CCP hf 2019"")>]"
+            yield @"[<assembly: AssemblyTrademark("""")>]"
+            yield @"[<assembly: AssemblyCulture("""")>]"
+            yield @"[<assembly:System.Resources.NeutralResourcesLanguage(""en"")>]"
+            yield @"[<assembly: AssemblyVersion(""0.0.0.0"")>]"
+            yield @"[<assembly: AssemblyFileVersion(""0.0.0.0"")>]"
+            yield @"[<assembly: AssemblyInformationalVersion("""")>]"
+            yield @"do"
+            yield @"    ()"
+        } |> List.ofSeq
+
     let genEntityMapFunctions partitions funcName (modules: seq<ModuleSource>) =
         modules |> Seq.map (fun ms -> (ms.partition, ms.moduleName, ms.funcName))
                                     |> toGenMapFunction funcName partitions
@@ -277,7 +295,8 @@ module FSharpSource=
                                 |> Array.ofSeq
 
             let fileItemGroup = new XElement(XName.op_Implicit("ItemGroup"), fileIncludes) 
-            let paketInclude = new XElement(XName.op_Implicit("Import"), XAttribute(XName.op_Implicit("Project"), "..\..\.paket\Paket.Restore.targets"))
+            
+            //let paketInclude = new XElement(XName.op_Implicit("Import"), XAttribute(XName.op_Implicit("Project"), "..\..\.paket\Paket.Restore.targets"))
             
             let includedProjectRefs = includedProjects 
                                         |> Seq.map (fun p -> Io.relativePath filePath p ) 
@@ -287,7 +306,7 @@ module FSharpSource=
 
             let proj = new XElement(XName.op_Implicit("Project"), 
                                     new XAttribute(XName.op_Implicit("Sdk"), "Microsoft.NET.Sdk"),
-                                    propertyGroup, fileItemGroup, includedProjectGroup, paketInclude)
+                                    propertyGroup, fileItemGroup, includedProjectGroup)//, paketInclude)
             
             
             
