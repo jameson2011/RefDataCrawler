@@ -514,13 +514,13 @@ type SourceCodeGenerator(config: GenerateConfig)=
         
         let start = DateTime.UtcNow
 
-        let sharedTypesNamespace, sharedTypesProject = generateSharedTypes "Entities" |> Async.RunSynchronously
+        let sharedTypesNamespace, sharedTypesProject = generateSharedTypes "Data.Entities" |> Async.RunSynchronously
         
-        generateUniverse "Universe" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+        generateUniverse "Data.Universe" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
         
-        generateMoons "Moons" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+        generateMoons "Data.Moons" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
 
-        generateItemTypes "ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+        generateItemTypes "Data.ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
 
 
         let duration = DateTime.UtcNow - start

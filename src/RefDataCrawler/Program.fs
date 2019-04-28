@@ -29,7 +29,7 @@ module Program =
         { GenerateConfig.sourcePath = CommandLine.getSourceFolderArg app |> Option.defaultValue @"C:\\";
                          targetPath = CommandLine.getTargetFolderValue app |> Option.defaultValue GenerateConfig.TargetPathDefault;
                          sourcePartitions = Math.primeBefore 100;
-                         namespacePrefix = "DotNetStaticData";
+                         namespacePrefix = "EsiStatics";
                          }
 
     let private startCrawler (app: CommandLine.App) =        
