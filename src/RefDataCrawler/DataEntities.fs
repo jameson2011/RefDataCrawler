@@ -1,7 +1,7 @@
 ﻿namespace RefDataCrawler
 
         
-
+[<Struct>] 
 type PositionData = 
     {
         x: float; 
@@ -16,6 +16,7 @@ type SystemSecurity =
     | Wormhole 
     | Abyssal
 
+[<Struct>] 
 type RegionData = 
     { 
         id:                 int;
@@ -23,6 +24,7 @@ type RegionData =
         constellationIds:   int[];
     }
 
+[<Struct>] 
 type ConstellationData =  
     {
         id:                 int;
@@ -32,12 +34,15 @@ type ConstellationData =
         position:           PositionData;
     }
 
+[<Struct>] 
 type PlanetRefData =
     {
         planetId:           int;
         moonIds:            int[];
         beltIds:            int[];
     }
+
+[<Struct>] 
 type SolarSystemData =
     {
         id:                 int;
@@ -53,6 +58,7 @@ type SolarSystemData =
         planetIds:          PlanetRefData[];
     }
 
+[<Struct>] 
 type PlanetData =
     {
         id:                 int;
@@ -62,6 +68,7 @@ type PlanetData =
         typeId:             int;
     }
 
+[<Struct>] 
 type AsteroidBeltData =
     {
         id:                 int;
@@ -70,6 +77,7 @@ type AsteroidBeltData =
         position:           PositionData;
     }
 
+[<Struct>] 
 type MoonData =
     {
         id:                 int;
@@ -78,6 +86,7 @@ type MoonData =
         position:           PositionData;
     }
 
+[<Struct>] 
 type StationData =
     {
         id:                     int;
@@ -89,6 +98,7 @@ type StationData =
         maxDockableShipVolume:  int;
     }
 
+[<Struct>] 
 type StarData= 
     {
         id:                     int;
@@ -102,6 +112,7 @@ type StarData=
         temperature:            int;
     }
 
+[<Struct>] 
 type StargateData=
     {
         id:                         int;
@@ -113,6 +124,7 @@ type StargateData=
         destinationStargateId:      int;
     }
 
+[<Struct>] 
 type CategoryData =
     {
         id:                         int;
@@ -121,6 +133,7 @@ type CategoryData =
         groupIds:                   int[];
     }
 
+[<Struct>] 
 type GroupData =
     {
         id:                         int;
@@ -130,6 +143,7 @@ type GroupData =
         typeIds:                    int[];
     }
 
+[<Struct>] 
 type MarketGroupData =
     {
         id:                         int;
@@ -139,18 +153,21 @@ type MarketGroupData =
         description:                string;
     }
 
+[<Struct>] 
 type DogmaAttributeValueData =
     {
         attributeId:                int;
         value:                      float;
     }
 
+[<Struct>] 
 type DogmaEffectValueData =
     {
         effectId:                   int;
         isDefault:                  bool;
     }
 
+[<Struct>] 
 type ItemTypeData =
     {
         id:                         int;
@@ -170,7 +187,7 @@ type ItemTypeData =
         volume:                     float;
     }
 
-
+[<Struct>] 
 type DogmaAttributeData =
     {
         id:                         int;
@@ -183,6 +200,7 @@ type DogmaAttributeData =
         highIsGood:                 bool;
     }
 
+[<Struct>] 
 type DogmaEffectData =
     {
         id:                         int;

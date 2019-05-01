@@ -147,7 +147,6 @@ type EsiCrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: Po
 
             return match resp with
                     | Choice1Of2 systemIds ->   let systemIds = systemIds 
-                                                                    //|> Seq.take 500 // TODO: temp
                                                                     |> Seq.map string
                                                                     |> Array.ofSeq
                                                 sprintf "Found %i %s(s)" systemIds.Length entityType |> ActorMessage.Info |> log

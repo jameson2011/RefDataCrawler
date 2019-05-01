@@ -97,8 +97,12 @@ module FSharpSource=
         } |> List.ofSeq
 
         
-
+        
     let toRecordSource (recordType: Type) =
+        let attrs = match recordType.GetCustomAttributes<StructAttribute>() |> Seq.tryHead with
+                    | Some _ -> "[<Struct>]" + Environment.NewLine
+                    | _ -> ""
+
         let property (pi: PropertyInfo) =
             (pi.Name, (pi.PropertyType |> typeAlias) )
         
@@ -106,7 +110,8 @@ module FSharpSource=
                                 |> Seq.map property
                                 |> Seq.map (fun (n,t) -> sprintf "%s: %s" n t)
                                 |> String.concatenate "; "
-        sprintf "type %s = { %s }" recordType.Name props
+
+        sprintf "%stype %s = { %s }" attrs recordType.Name props
 
     let toUnionSource (unionType: Type) =
         let cases = Microsoft.FSharp.Reflection.FSharpType.GetUnionCases(unionType)
@@ -283,8 +288,6 @@ module FSharpSource=
         async {
             let filePath = filename |> Io.path folder
             
-            // TODO: assembly info!
-
             let targetFramework = new XElement(XName.op_Implicit("TargetFramework"), "netstandard2.0")
             let propertyGroup = new XElement(XName.op_Implicit("PropertyGroup"), targetFramework)
             
@@ -296,7 +299,7 @@ module FSharpSource=
 
             let fileItemGroup = new XElement(XName.op_Implicit("ItemGroup"), fileIncludes) 
             
-            //let paketInclude = new XElement(XName.op_Implicit("Import"), XAttribute(XName.op_Implicit("Project"), "..\..\.paket\Paket.Restore.targets"))
+            let paketInclude = new XElement(XName.op_Implicit("Import"), XAttribute(XName.op_Implicit("Project"), "..\..\.paket\Paket.Restore.targets"))
             
             let includedProjectRefs = includedProjects 
                                         |> Seq.map (fun p -> Io.relativePath filePath p ) 
@@ -306,7 +309,7 @@ module FSharpSource=
 
             let proj = new XElement(XName.op_Implicit("Project"), 
                                     new XAttribute(XName.op_Implicit("Sdk"), "Microsoft.NET.Sdk"),
-                                    propertyGroup, fileItemGroup, includedProjectGroup)//, paketInclude)
+                                    propertyGroup, fileItemGroup, includedProjectGroup, paketInclude)
             
             
             
