@@ -52,6 +52,9 @@ module String =
     let concatenate delim (values: seq<string>) =
         System.String.Join(delim, values);
 
+    let escape (value: string) =
+        value.Replace("\"", "\"\"")
+
     let stripWhitespace (value: string) =
         value.Replace('\t', ' ')
             .Replace('\r', ' ')

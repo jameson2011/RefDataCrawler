@@ -187,6 +187,38 @@ type SourceCodeGenerator(config: GenerateConfig)=
                             postExpression = value.PostExpression;
         }
 
+    let toItemType (id: string, value: ItemType.Root) =
+        
+        let attrValue (v: ItemType.DogmaAttribute) = 
+            {
+                DogmaAttributeValueData.attributeId = v.AttributeId;
+                    value = float v.Value;
+            }
+            
+        let effectValue (v: ItemType.DogmaEffect) =
+            {
+                DogmaEffectValueData.effectId = v.EffectId;
+                                    isDefault = v.IsDefault
+            }
+
+        {
+            ItemTypeData.id = value.TypeId;
+                         name = value.Name |> String.stripWhitespace |> String.escape ;
+                         published = value.Published;
+                         description = value.Description |> String.stripWhitespace |> String.escape ;
+                         marketGroupId = safeDefault (fun () -> Some value.MarketGroupId) None;
+                         groupId = value.GroupId;
+                         dogmaAttributes =  value.DogmaAttributes |> Array.map attrValue;
+                         dogmaEffects = value.DogmaEffects |> Array.map effectValue;
+                         capacity = float value.Capacity;
+                         graphicId = safeDefault (fun () -> Some value.GraphicId) None;
+                         mass = float value.Mass;
+                         packagedVolume = float value.PackagedVolume;
+                         portionSize = value.PortionSize;
+                         radius = float value.Radius;
+                         volume = float value.Volume;
+        }
+
     let generateTypeDefinitions namespaceName folder (types: seq<Type>) =
         async {
             
@@ -321,6 +353,21 @@ type SourceCodeGenerator(config: GenerateConfig)=
             return! values |> FSharpSource.genEntitiesSource folder partitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }               
 
+    let generateItemTypeSource namespaceName folder importedNamespaces (values: seq<ItemTypeData>) =
+        async {
+            let id (r: ItemTypeData) = r.id
+            let funcName = "getItemType"
+            let modulePrefix = "ItemTypes"
+            let mapModule = modulePrefix
+            
+            
+            let enumeratorFunction = values |> Seq.map id 
+                                        |> FSharpSource.toEntityEnumerator "itemTypes" funcName 
+                                        |> List.ofSeq
+
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule enumeratorFunction importedNamespaces
+        }
+
     let generateMarketGroupSource namespaceName folder importedNamespaces (values: seq<MarketGroupData>) =
         async {
             let id (r: MarketGroupData) = r.id
@@ -433,6 +480,9 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let projectFileName = FSharpSource.projectFileName namespaceName
 
             let! rootFolder = namespaceName |> Io.path destinationPath |> Io.createFolder
+            
+            let! itemTypes = EsiFiles.itemTypes sourcePath |> Async.map (Seq.map toItemType >> Array.ofSeq)
+            let! (itMapFile, itDataFiles) = generateItemTypeSource namespaceName rootFolder sharedTypesNamespaces itemTypes
 
             let! marketGroups = EsiFiles.marketGroups sourcePath |> Async.map (Seq.map toMarketGroup >> Array.ofSeq)
             let! (mgMapFile, mgDataFiles) = generateMarketGroupSource namespaceName rootFolder sharedTypesNamespaces marketGroups
@@ -449,9 +499,10 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! dogmaEffects = EsiFiles.dogmaEffect sourcePath |> Async.map (Seq.map toDogmaEffect >> Array.ofSeq)
             let! (deMapFile, deDataFiles) = generateDogmaEffectsSource namespaceName rootFolder sharedTypesNamespaces dogmaEffects
 
+            
 
-            let mapFiles = [mgMapFile; cMapFile; gMapFile; daMapFile; deMapFile]
-            let dataFiles = [| mgDataFiles; cDataFiles; gDataFiles; daDataFiles; deDataFiles |] |> Array.collect id
+            let mapFiles = [itMapFile; mgMapFile; cMapFile; gMapFile; daMapFile; deMapFile]
+            let dataFiles = [| itDataFiles; mgDataFiles; cDataFiles; gDataFiles; daDataFiles; deDataFiles |] |> Array.collect id
             let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName  [] dataFiles mapFiles [sharedTypesPath]
 
             return (namespaceName, projectFilePath)
@@ -516,12 +567,14 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
         let sharedTypesNamespace, sharedTypesProject = generateSharedTypes "Data.Entities" |> Async.RunSynchronously
         
+        generateItemTypes "Data.ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+
+
         generateUniverse "Data.Universe" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
         
         generateMoons "Data.Moons" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
 
-        generateItemTypes "Data.ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
-
+        
 
         let duration = DateTime.UtcNow - start
         "Done. " + duration.ToString() |> ConsoleUtils.info

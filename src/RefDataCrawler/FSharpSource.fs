@@ -59,6 +59,8 @@ module FSharpSource=
         | x when x = typedefof<string[]> ->     "string[]"
         | x when x = intOptionType ->           "int option"
         | x when x = floatOptionType ->         "float option"
+        | x when x = typedefof<DogmaAttributeValueData[]> -> "DogmaAttributeValueData[]"
+        | x when x = typedefof<DogmaEffectValueData[]> ->    "DogmaEffectValueData[]"
         | x -> x.Name
         
     let partitionEntitiesById bucketCount (id: 'a -> int) (values: seq<'a>) =
@@ -135,7 +137,13 @@ module FSharpSource=
             | :? (string[]) as xs ->        arrayValues xs
             | :? bool as x ->               string x |> String.lower
             | :? (PlanetRefData[]) as xs -> arrayValues xs
+            | :? (DogmaAttributeValueData[]) as xs -> arrayValues xs
+            | :? (DogmaEffectValueData[]) as xs -> arrayValues xs
             | :? PlanetRefData as pd ->     sprintf "{ PlanetRefData.planetId = %i; moonIds=%s; beltIds= %s }" pd.planetId (arrayValues pd.moonIds) (arrayValues pd.beltIds)
+            | :? DogmaAttributeValueData as vd ->
+                                            sprintf "{ DogmaAttributeValueData.attributeId = %i; value= %f }" vd.attributeId vd.value
+            | :? DogmaEffectValueData as vd->
+                                            sprintf "{ DogmaEffectValueData.effectId = %i; isDefault = %b }" vd.effectId vd.isDefault
             | null ->                       "None"
             | _ -> (string value).Replace('\n', ' ').Replace('\r', ' ')
 

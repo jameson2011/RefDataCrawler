@@ -174,12 +174,12 @@ type ItemTypeData =
         name:                       string;
         published:                  bool;
         description:                string;
-        marketGroupId:              int;
+        marketGroupId:              int option;
         groupId:                    int;
         dogmaAttributes:            DogmaAttributeValueData[];
         dogmaEffects:               DogmaEffectValueData[];
         capacity:                   float;
-        graphicId:                  int;
+        graphicId:                  int option;
         mass:                       float;
         packagedVolume:             float;
         portionSize:                int;

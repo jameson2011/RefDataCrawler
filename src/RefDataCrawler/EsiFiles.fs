@@ -85,3 +85,5 @@ module EsiFiles=
     let dogmaAttributes root = allEntities root "dogma_attribute" DogmaAttribute.Parse
 
     let dogmaEffect root = allEntities root "dogma_effect" DogmaEffect.Parse
+
+    let itemTypes root = allEntities root "type" ItemType.Parse
