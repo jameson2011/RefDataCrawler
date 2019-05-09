@@ -66,6 +66,8 @@ type PlanetData =
         solarSystemId:      int;
         position:           PositionData;
         typeId:             int;
+        asteroidBeltIds:    int[];
+        moonIds:            int[];
     }
 
 [<Struct>] 

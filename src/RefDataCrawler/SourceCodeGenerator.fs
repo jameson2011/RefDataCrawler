@@ -68,7 +68,11 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         stationIds = safeDefault (fun () -> value.Stations) [||];
                         }
         
-    let toPlanet (id: string, value: Planet.Root) =
+    let toPlanet (getSystem: int -> SolarSystemData) (id: string, value: Planet.Root) =
+        let system = getSystem value.SystemId
+
+        let ref = system.planetIds |> Seq.find (fun pr -> pr.planetId = value.PlanetId )
+
         {
             PlanetData.id = value.PlanetId;
                        name = value.Name;
@@ -77,6 +81,8 @@ type SourceCodeGenerator(config: GenerateConfig)=
                                                     y = float value.Position.Y; 
                                                     z = float value.Position.Z};
                        typeId = value.TypeId;
+                       asteroidBeltIds = ref.beltIds;
+                       moonIds = ref.moonIds;
         }
 
     let toStar (id: string, value: Star.Root) =
@@ -532,7 +538,9 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! solarSystems = EsiFiles.solarSystems sourcePath  |> Async.map (Seq.map (toSolarSystem getConstellationRegion) >> Array.ofSeq)
             let! solarSystemMapFile, solarSystemDataFiles = solarSystems |> generateSolarSystemSource namespaceName rootFolder sharedTypesNamespace
             
-            let! planets = EsiFiles.planets sourcePath |> Async.map (Seq.map toPlanet >> Array.ofSeq )
+            let getSystem id = solarSystems |> Seq.find (fun s -> s.id = id)
+
+            let! planets = EsiFiles.planets sourcePath |> Async.map (Seq.map (toPlanet getSystem) >> Array.ofSeq )
             let! planetMapFile, planetDataFiles = planets |> generatePlanetSource namespaceName rootFolder sharedTypesNamespace
 
             let! stargates = EsiFiles.stargates sourcePath |> Async.map (Seq.map toStargate >> Array.ofSeq)
@@ -567,14 +575,14 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
         let sharedTypesNamespace, sharedTypesProject = generateSharedTypes "Data.Entities" |> Async.RunSynchronously
         
-        generateItemTypes "Data.ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
-
-
+        
         generateUniverse "Data.Universe" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
         
         generateMoons "Data.Moons" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
 
-        
+        generateItemTypes "Data.ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+
+
 
         let duration = DateTime.UtcNow - start
         "Done. " + duration.ToString() |> ConsoleUtils.info
