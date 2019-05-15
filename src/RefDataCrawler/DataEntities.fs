@@ -75,6 +75,7 @@ type AsteroidBeltData =
     {
         id:                 int;
         name:               string;
+        planetId:           int;
         solarSystemId:      int;
         position:           PositionData;
     }
@@ -84,6 +85,7 @@ type MoonData =
     {
         id:                 int;
         name:               string;
+        planetId:           int;
         solarSystemId:      int;
         position:           PositionData;
     }

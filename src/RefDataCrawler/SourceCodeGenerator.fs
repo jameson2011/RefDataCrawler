@@ -111,21 +111,25 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         destinationStargateId = value.Destination.StargateId;
         }
 
-    let toMoon (id: string, value: Moon.Root) =
+    let toMoon (getPlanet: int -> PlanetData) (id: string, value: Moon.Root) =
+        let planet = id |> Int32.Parse |> getPlanet
         {
             MoonData.id = value.MoonId;
                     name = value.Name;
                     solarSystemId = value.SystemId;
+                    planetId = planet.id;
                     position = { PositionData.x = float value.Position.X; 
                                                     y = float value.Position.Y; 
                                                     z = float value.Position.Z};
         }
 
-    let toBelt (id: string, value: AsteroidBelt.Root) = 
+    let toBelt (getPlanet: int -> PlanetData) (id: string, value: AsteroidBelt.Root) = 
+        let planet = id |> Int32.Parse |> getPlanet
         {
             AsteroidBeltData.id = Int32.Parse id;
                             name = value.Name;
                             solarSystemId = value.SystemId;
+                            planetId = planet.id;
                             position = { PositionData.x = float value.Position.X; 
                                                         y = float value.Position.Y; 
                                                         z = float value.Position.Z};
@@ -463,15 +467,18 @@ type SourceCodeGenerator(config: GenerateConfig)=
         }
 
 
-    let generateMoons(domain: string) (importedNamespaces: seq<string>) (sharedTypesPath: string)=
+    let generateMoons(domain: string) (importedNamespaces: seq<string>) (sharedTypesPath: string) (planets: PlanetData[])=
         async {
             let namespaceName = FSharpSource.namespaceName namespacePrefix domain
             let projectFileName = FSharpSource.projectFileName namespaceName
 
             let! rootFolder = namespaceName |> Io.path destinationPath |> Io.createFolder
             
-            
-            let! moons = EsiFiles.moons sourcePath |> Async.map (Seq.map toMoon >> Array.ofSeq)
+            let getMoonPlanet (moonId: int)=
+                planets |> Seq.filter (fun p -> p.moonIds |> Array.contains moonId)
+                        |> Seq.head
+
+            let! moons = EsiFiles.moons sourcePath |> Async.map (Seq.map (toMoon getMoonPlanet) >> Array.ofSeq)
             let! moonMapFile, moonDataFiles = moons |> generateMoonSource namespaceName rootFolder importedNamespaces
 
             
@@ -532,7 +539,6 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! constellationMapFile, constellationDataFiles = constellations |> generateConstellationsSource namespaceName rootFolder sharedTypesNamespace
 
             let getConstellation id = constellations |> Seq.find (fun c -> c.id = id)
-
             let getConstellationRegion = (getConstellation >> (fun c -> c.regionId) >> getRegion)
 
             let! solarSystems = EsiFiles.solarSystems sourcePath  |> Async.map (Seq.map (toSolarSystem getConstellationRegion) >> Array.ofSeq)
@@ -546,7 +552,12 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! stargates = EsiFiles.stargates sourcePath |> Async.map (Seq.map toStargate >> Array.ofSeq)
             let! stargateMapFile, stargateDataFiles = stargates |> generateStargateSource namespaceName rootFolder sharedTypesNamespace
 
-            let! belts = EsiFiles.belts sourcePath |> Async.map (Seq.map toBelt >> Array.ofSeq)
+            // TODO:
+            let getBeltPlanet (beltId: int)=
+                planets |> Seq.filter (fun p -> p.asteroidBeltIds |> Array.contains beltId)
+                        |> Seq.head
+
+            let! belts = EsiFiles.belts sourcePath |> Async.map (Seq.map (toBelt getBeltPlanet) >> Array.ofSeq)
             let! beltMapFile, beltDataFiles = belts |> generateAsteroidBeltSource namespaceName rootFolder sharedTypesNamespace
 
             let! stars = EsiFiles.stars sourcePath |> Async.map (Seq.map toStar >> Array.ofSeq)
@@ -564,7 +575,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
             
             let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName [] data maps [sharedTypesPath]
 
-            return (namespaceName, projectFilePath)
+            return (namespaceName, projectFilePath, planets)
         }
 
     let startGeneration() =
@@ -576,9 +587,9 @@ type SourceCodeGenerator(config: GenerateConfig)=
         let sharedTypesNamespace, sharedTypesProject = generateSharedTypes "Data.Entities" |> Async.RunSynchronously
         
         
-        generateUniverse "Data.Universe" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+        let _,_,planets = generateUniverse "Data.Universe" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously// |> ignore
         
-        generateMoons "Data.Moons" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
+        generateMoons "Data.Moons" [sharedTypesNamespace] sharedTypesProject planets |> Async.RunSynchronously |> ignore
 
         generateItemTypes "Data.ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
 
