@@ -63,7 +63,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         secClass = value.SecurityClass;
                         secStatus = secStatus;
                         starIds = safeDefault (fun () -> [| value.StarId |] ) [||] ;
-                        planetIds = planets ;
+                        planets = planets ;
                         stargateIds = safeDefault (fun () -> value.Stargates) [||];
                         stationIds = safeDefault (fun () -> value.Stations) [||];
                         }
@@ -71,7 +71,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
     let toPlanet (getSystem: int -> SolarSystemData) (id: string, value: Planet.Root) =
         let system = getSystem value.SystemId
 
-        let ref = system.planetIds |> Seq.find (fun pr -> pr.planetId = value.PlanetId )
+        let ref = system.planets |> Seq.find (fun pr -> pr.planetId = value.PlanetId )
 
         {
             PlanetData.id = value.PlanetId;

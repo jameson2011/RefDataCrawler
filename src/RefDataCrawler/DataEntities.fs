@@ -55,7 +55,7 @@ type SolarSystemData =
         stargateIds:        int[];
         stationIds:         int[];
         starIds:            int[];
-        planetIds:          PlanetRefData[];
+        planets:            PlanetRefData[];
     }
 
 [<Struct>] 
