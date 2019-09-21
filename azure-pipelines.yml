@@ -23,6 +23,4 @@ jobs:
     - script: .paket\paket.exe restore --group Build
       displayName: 'Restore packages'
     - script: build.bat
-          displayName: 'Run build'
-
-
+      displayName: 'Run build'
