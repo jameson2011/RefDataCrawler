@@ -3,11 +3,15 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
-trigger:
-- master
 
-pool:
-  vmImage: 'vs2017-win2016'
+trigger:
+  branches:
+    include:
+      - master
+      - dev
+      - feature/*
+    exclude:
+      - releases/old*
 
 jobs:
   - job: build
