@@ -23,6 +23,6 @@ jobs:
     - task: PublishBuildArtifacts@1
       displayName: 'Package artifacts'
       inputs:
-        PathtoPublish: 'src\RefDataCrawler\bin\Release\netcoreapp2.2'
+        PathtoPublish: 'publish'
         ArtifactName: 'RefDataCrawler'
         publishLocation: 'Container'
