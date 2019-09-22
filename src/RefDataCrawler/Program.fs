@@ -68,4 +68,5 @@ module Program =
                 rc
         with
         | ex -> ConsoleUtils.error ex.Message   
+                ConsoleUtils.error ex.StackTrace
                 2
