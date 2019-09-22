@@ -193,8 +193,8 @@ type SourceCodeGenerator(config: GenerateConfig)=
                             description = String.stripWhitespace value.Description;
                             displayName = String.stripWhitespace value.DisplayName;
                             effectCategory = value.EffectCategory;
-                            preExpression = value.PreExpression;
-                            postExpression = value.PostExpression;
+                            preExpression = safeDefault (fun () -> value.PreExpression) 0;
+                            postExpression = safeDefault (fun () -> value.PostExpression) 0;
         }
 
     let toItemType (id: string, value: ItemType.Root) =
