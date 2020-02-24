@@ -2,7 +2,7 @@
   "profiles": {
     "RefDataCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "gen  --source C:\\Projects\\GitRepos\\StaticData\\data --dest C:\\projects\\gitrepos\\EsiStatics\\src"
+      "commandLineArgs": "sde  --dest C:\\Projects\\GitRepos\\StaticData\\sdedata "
     }
   }
 }

@@ -44,6 +44,7 @@
     <Compile Include="EntityWriterActor.fs" />
     <Compile Include="EsiCrawler.fs" />
     <Compile Include="SourceCodeGenerator.fs" />
+    <Compile Include="SdeCrawler.fs" />
     <Compile Include="CommandLine.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

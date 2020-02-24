@@ -100,3 +100,11 @@ type CrawlProgress=
         errorCount:     int;
         entityTypes:    CrawlEntityTypeProgress[];
     }
+
+type SdeCrawlerConfig =
+    {
+        targetPath :    string;
+        sourcePath :    string;
+        verboseLogging: bool;
+    } with
+    static member TargetPathDefault = @".\sdedata\"

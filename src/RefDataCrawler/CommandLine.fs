@@ -122,6 +122,9 @@ module CommandLine=
     let addMaxErrorsArg =                   addSingleOption errorLimitArg errorLimitArg "Maximum errors tolerated"
     let getMaxErrorsValue app =             getIntOption errorLimitArg app |> Option.defaultValue 0
 
+    let addSourceUriArg =                   addSingleOption sourceFolderArg sourceFolderArg "The source Uri"
+    let getSourceUriArg app =               getStringOption sourceFolderArg app |> Option.defaultValue "https://eve-static-data-export.s3-eu-west-1.amazonaws.com/tranquility/sde.zip"
+
     let createApp() =
         let app = new App(false)
         app.Name <- "RefDataCrawler"
@@ -156,4 +159,13 @@ module CommandLine=
                         >> addTargetFolderArg
                         >> setAction cmd
         app.Command("gen", composeAppPipe f) |> ignore
+        app
+
+    let addCrawlSde cmd (app: App) =
+        let f = setDesc "Crawl SDE"
+                    >> addTargetFolderArg
+                    >> addSourceUriArg
+                    >> addVerboseArg
+                    >> setAction cmd
+        app.Command("sde", composeAppPipe f) |> ignore
         app
