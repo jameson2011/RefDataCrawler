@@ -3,3 +3,4 @@ FSharp.Core
 Newtonsoft.Json
 FSharp.Data
 log4net
+YamlDotNet

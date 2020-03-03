@@ -5,6 +5,7 @@ nuget FSharp.Data
 nuget log4net
 nuget Microsoft.Extensions.CommandLineUtils
 nuget Newtonsoft.Json
+nuget YamlDotNet
 // [ FAKE GROUP ]
 group Build
     storage none
