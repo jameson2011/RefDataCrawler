@@ -229,6 +229,12 @@ type SourceCodeGenerator(config: GenerateConfig)=
                          volume = float value.Volume;
         }
 
+    let toNpcCorp (id: string, value: NpcCorp.Root) =
+        {
+            NameData.id = Int32.Parse id;
+                    name = value.Name;
+        }
+
     let generateTypeDefinitions namespaceName folder (types: seq<Type>) =
         async {
             
@@ -256,6 +262,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         typedefof<CategoryData>; typedefof<GroupData>; typedefof<MarketGroupData>;
                         typedefof<DogmaAttributeValueData>; typedefof<DogmaEffectValueData>; typedefof<ItemTypeData>;
                         typedefof<DogmaAttributeData>; typedefof<DogmaEffectData>;
+                        typedefof<NameData>;
                         ]
                         |> generateTypeDefinitions namespaceName folder
         }
@@ -452,6 +459,21 @@ type SourceCodeGenerator(config: GenerateConfig)=
             return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
         }
 
+    let generateNpcCorpSource namespaceName folder importedNamespaces (values: seq<NameData>) =
+        async {
+            let id (r: NameData) = r.id
+            let funcName = "getNpcCorp"
+            let modulePrefix = "NpcCorps"
+            let mapModule = modulePrefix
+            let partitions = 11
+            let enumeratorFunction = values |> Seq.map id 
+                                        |> FSharpSource.toEntityEnumerator "npcCorps" funcName 
+                                        |> List.ofSeq
+
+            return! values |> FSharpSource.genEntitiesSource folder partitions namespaceName id funcName modulePrefix mapModule enumeratorFunction importedNamespaces
+        }
+
+
     let generateSharedTypes(domain: string)=
         async {
             let namespaceName = FSharpSource.namespaceName namespacePrefix domain
@@ -578,22 +600,38 @@ type SourceCodeGenerator(config: GenerateConfig)=
             return (namespaceName, projectFilePath, planets)
         }
 
+    let generateMiscData (domain: string) (sharedTypesNamespaces: seq<string>) (sharedTypesPath: string) =
+        async {
+            let namespaceName = FSharpSource.namespaceName namespacePrefix domain
+            let projectFileName = FSharpSource.projectFileName namespaceName
+
+            let! rootFolder = namespaceName |> Io.path destinationPath |> Io.createFolder
+            
+            let! npcCorps = EsiFiles.npcCorps sourcePath |> Async.map (Seq.map toNpcCorp >> Array.ofSeq)
+            let! (ncMapFile, ncDataFiles) = generateNpcCorpSource namespaceName rootFolder sharedTypesNamespaces npcCorps
+            
+            let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName  [] ncDataFiles [ncMapFile] [sharedTypesPath]
+
+            return (namespaceName, projectFilePath)
+            
+        }
+
     let startGeneration() =
         
         "Starting..." |> ConsoleUtils.info 
         
         let start = DateTime.UtcNow
-
+                
         let sharedTypesNamespace, sharedTypesProject = generateSharedTypes "Data.Entities" |> Async.RunSynchronously
         
-        
+
         let _,_,planets = generateUniverse "Data.Universe" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously// |> ignore
         
         generateMoons "Data.Moons" [sharedTypesNamespace] sharedTypesProject planets |> Async.RunSynchronously |> ignore
 
         generateItemTypes "Data.ItemTypes" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
 
-
+        generateMiscData "Data.Misc" [sharedTypesNamespace] sharedTypesProject |> Async.RunSynchronously |> ignore
 
         let duration = DateTime.UtcNow - start
         "Done. " + duration.ToString() |> ConsoleUtils.info

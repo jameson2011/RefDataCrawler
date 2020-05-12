@@ -2,7 +2,7 @@
   "profiles": {
     "RefDataCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "crawl --dest \".data\" --maxerrors 2000 --progress  --npccorps"
+      "commandLineArgs": "gen -dest \"C:\\Projects\\GitRepos\\EsiStatics\\src\" -source \"C:\\Projects\\GitRepos\\StaticData\\data\""
     }
   }
 }

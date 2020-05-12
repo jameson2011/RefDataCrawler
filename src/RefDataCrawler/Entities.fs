@@ -29,6 +29,7 @@ type MarketGroup = JsonProvider<"./SampleMarketGroup.json">
 type Group = JsonProvider<"./SampleGroup.json">
 type Category = JsonProvider<"./SampleCategory.json">
 type ItemType = JsonProvider<"./SampleItemType.json">
+type NpcCorp = JsonProvider<"./SampleNpcCorp.json">
 
 type EntityMetadata = {
         entityType: string;

@@ -28,6 +28,7 @@
     <None Include="SampleDogmaAttribute.json" />
     <None Include="SampleDogmaEffect.json" />
     <None Include="SampleItemType.json" />
+    <None Include="SampleNpcCorp.json" />
     <Compile Include="Utilities.fs" />
     <Compile Include="Entities.fs" />
     <Compile Include="ConsoleUtils.fs" />
