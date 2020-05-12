@@ -19,6 +19,7 @@ type EsiCrawler(config: CrawlerConfig)=
                         ((fun c -> c.crawlDogmaAttributes), ActorMessage.DogmaAttributes);
                         ((fun c -> c.crawlDogmaEffects), ActorMessage.DogmaEffects);
                         ((fun c -> c.crawlMarketGroups), ActorMessage.MarketGroups);
+                        ((fun c -> c.crawlNpcCorps), ActorMessage.NpcCorps);
                       |]
         
         let msgs = msgMaps |> Seq.filter (fun (f,_) -> f config) 

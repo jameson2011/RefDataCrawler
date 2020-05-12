@@ -69,7 +69,7 @@ type CrawlerConfig =
         crawlDogmaAttributes: bool;
         crawlDogmaEffects: bool;
         crawlMarketGroups: bool;
-
+        crawlNpcCorps: bool;
         maxErrors: int;
 
         verboseLogging: bool;

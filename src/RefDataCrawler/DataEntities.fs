@@ -1,5 +1,12 @@
 ﻿namespace RefDataCrawler
 
+[<Struct>] 
+type NameData = 
+    { 
+        id:                 int;
+        name:               string;
+    }
+
         
 [<Struct>] 
 type PositionData = 

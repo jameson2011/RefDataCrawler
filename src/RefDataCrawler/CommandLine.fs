@@ -20,6 +20,7 @@ module CommandLine=
     let private dogmaAttributesArg = "dogma_attributes"
     let private dogmaEffectsArg = "dogma_effects"
     let private marketGroupsArg = "market_groups"
+    let private npcCorpsArg = "npccorps"
     let private verboseArg = "verbose"
     let private progressTickerArg = "progress"
     let private errorLimitArg = "maxerrors"
@@ -27,6 +28,7 @@ module CommandLine=
     let private longestArg = 
         [ targetFolderArg; regionsArg; constellationsArg; systemsArg; 
             groupsArg; categoriesArg; typesArg; dogmaAttributesArg; dogmaEffectsArg;
+            npcCorpsArg;
             verboseArg; progressTickerArg; errorLimitArg; ]
         |> Seq.map String.length
         |> Seq.max
@@ -113,6 +115,9 @@ module CommandLine=
     let addMarketGroupsArg =                addSwitchOption marketGroupsArg marketGroupsArg "Crawl Market Groups"
     let getMarketGroupsValue app =          getSwitchOption marketGroupsArg app
 
+    let addNpcCorpsArg =                    addSwitchOption npcCorpsArg npcCorpsArg "Crawl NPC Corps"
+    let getNpcCorpsValue app =              getSwitchOption npcCorpsArg app
+
     let addVerboseArg =                     addSwitchOption verboseArg verboseArg "Verbose logging"
     let getVerboseValue app =               getSwitchOption verboseArg app
     
@@ -146,6 +151,7 @@ module CommandLine=
                         >> addDogmaAttributesArg
                         >> addDogmaEffectsArg
                         >> addMarketGroupsArg
+                        >> addNpcCorpsArg
                         >> addVerboseArg
                         >> addProgressTickerArg
                         >> addMaxErrorsArg

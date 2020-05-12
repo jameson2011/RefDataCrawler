@@ -39,6 +39,8 @@ type EsiCrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: Po
         | DogmaEffectIds _ ->   "dogma_effect"
         | MarketGroups
         | MarketGroupIds _ ->   "market_group"
+        | NpcCorps 
+        | NpcCorpsIds _ ->      "npccorps"
         | ServerStatus ->       "server_status"
         | _ -> invalidOp "Unknown type"
         
@@ -58,27 +60,29 @@ type EsiCrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: Po
         | DogmaAttributeIds ids
         | DogmaEffectIds ids
         | MarketGroupIds ids
+        | NpcCorpsIds ids
         | StargateIds ids ->    ids |> List.ofSeq
         | _ ->                  []
 
     let entityTypeMsg msg =
         match msg with
-        | "planet" ->   PlanetIds
-        | "belt" ->     AsteroidBeltIds
-        | "moon" ->     MoonIds 
-        | "star" ->     StarIds
-        | "station" ->  StationIds
-        | "stargate" -> StargateIds
+        | "planet" ->           PlanetIds
+        | "belt" ->             AsteroidBeltIds
+        | "moon" ->             MoonIds 
+        | "star" ->             StarIds
+        | "station" ->          StationIds
+        | "stargate" ->         StargateIds
         
-        | "region" ->   RegionIds
-        | "constellation" -> ConstellationIds
+        | "region" ->           RegionIds
+        | "constellation" ->    ConstellationIds
         
-        | "groups" ->   GroupIds
-        | "category" -> CategoryIds
-        | "type" ->     TypeIds
-        | "dogma_attribute" -> DogmaAttributeIds
-        | "dogma_effect" -> DogmaEffectIds
-        | "market_group" -> MarketGroupIds
+        | "groups" ->           GroupIds
+        | "category" ->         CategoryIds
+        | "type" ->             TypeIds
+        | "dogma_attribute" ->  DogmaAttributeIds
+        | "dogma_effect" ->     DogmaEffectIds
+        | "market_group" ->     MarketGroupIds
+        | "npccorps" ->         NpcCorpsIds
         | _ -> invalidOp "unknown type" 
 
     
@@ -164,10 +168,10 @@ type EsiCrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: Po
             
             ids |> String.concatenate ", " |>  sprintf "Found %s %s" entityType |> ActorMessage.Info |> log
 
-            let! idEtags = getMetadata (entityType, ids) 
-                                |> Async.map (Seq.reduceOptions 
-                                                    >> Seq.map (fun m -> (m.id, m.etag) )
-                                                    >> Map.ofSeq)
+            let! meta = getMetadata (entityType, ids) 
+            let idEtags = meta  |> Seq.reduceOptions  
+                                |> Seq.map (fun m -> (m.id, m.etag) )
+                                |> Map.ofSeq
             let getReq id = 
                 match idEtags.TryFind id with
                 | Some tag -> req id |> HttpRequests.etag tag
@@ -313,6 +317,8 @@ type EsiCrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: Po
                                         | DogmaEffectIds ids ->     return! (onEntities post (entityTypeName inMsg) Esi.dogmaEffectRequest ids)
                                         | MarketGroups ->           return! (onGetEntityIds post (inMsg) Esi.marketGroupIds ActorMessage.MarketGroupIds)
                                         | MarketGroupIds ids ->     return! (onEntities post (entityTypeName inMsg) Esi.marketGroupRequest ids)
+                                        | NpcCorps ->               return! (onGetEntityIds post (inMsg) Esi.npcCorpIds ActorMessage.NpcCorpsIds)
+                                        | NpcCorpsIds ids ->        return! (onEntities post (entityTypeName inMsg) Esi.corpRequest ids)
                                         | _ -> return TimeSpan.Zero
                                     with ex ->  ActorMessage.Exception ("", ex) |> (log <--> crawlStatus)
                                                 post inMsg

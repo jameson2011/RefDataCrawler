@@ -2,7 +2,7 @@
   "profiles": {
     "RefDataCrawler": {
       "commandName": "Project",
-      "commandLineArgs": "sde  --dest C:\\Projects\\GitRepos\\StaticData\\sdedata "
+      "commandLineArgs": "crawl --dest \".data\" --maxerrors 2000 --progress  --npccorps"
     }
   }
 }
