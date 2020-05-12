@@ -10,7 +10,7 @@ let publishOptions = (fun (opts: DotNet.PublishOptions) ->
                           {
                             opts with 
                                 Configuration = DotNet.BuildConfiguration.Release
-                                OutputPath = Some "../../publish"
+                                OutputPath = Some "publish"
                           }
 
 
