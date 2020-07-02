@@ -6,6 +6,7 @@ trigger:
       - master
       - dev
       - feature/*
+      - bugfix/*
     exclude:
       - releases/old*
 
@@ -13,7 +14,7 @@ jobs:
   - job: build
     timeoutInMinutes: 180
     pool:
-      vmImage: 'vs2017-win2016'
+      vmImage: 'windows-2019'
 
     steps:
     - script: .paket\paket.exe restore --group Build
