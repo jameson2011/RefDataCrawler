@@ -26,6 +26,8 @@ let publishOptions = (fun (opts: DotNet.PublishOptions) ->
                             opts with 
                                 Configuration = DotNet.BuildConfiguration.Release
                                 OutputPath = Some "../../publish"
+                                MSBuildParams = { opts.MSBuildParams with 
+                                                    DisableInternalBinLog = true }
                           }
 
 
