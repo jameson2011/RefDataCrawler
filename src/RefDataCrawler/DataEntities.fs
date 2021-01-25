@@ -66,6 +66,20 @@ type SolarSystemData =
     }
 
 [<Struct>] 
+type SolarSystemJumpData =
+    {
+        distance:           float;
+        solarSystemId:      int;
+    }
+
+[<Struct>] 
+type SolarSystemJumpsData =
+    {
+        solarSystemId:      int;
+        jumps:              SolarSystemJumpData[]
+    }
+
+[<Struct>] 
 type PlanetData =
     {
         id:                 int;

@@ -4,6 +4,11 @@ open System
 
 type SourceCodeGenerator(config: GenerateConfig)=
 
+    [<Literal>]
+    let neighbourMaxDistance = 10.1        
+    [<Literal>]
+    let lyFactor = 9460730472580800.0
+
     let namespacePrefix = config.namespacePrefix
     let sourcePath = config.sourcePath
     let destinationPath = config.targetPath
@@ -68,6 +73,39 @@ type SourceCodeGenerator(config: GenerateConfig)=
                         stationIds = safeDefault (fun () -> value.Stations) [||];
                         }
         
+    let toSolarSystemJumpData(region: int -> RegionData) (solarSystems: SolarSystemData [])=    
+        ConsoleUtils.info "Finding SolarSystemJumps..."
+        let jumpableSolarSystems = solarSystems
+                                        |> Array.filter (fun ss ->  ss.secRating = SystemSecurity.Lowsec || 
+                                                                    ss.secRating = SystemSecurity.Highsec ||
+                                                                    ss.secRating = SystemSecurity.Nullsec)
+        
+        let euclideanData (p1: PositionData) (p2: PositionData) =
+            [ p1.x - p2.x; p1.y - p2.y; p1.z - p2.z ]
+                |> Seq.map float
+                |> Math.euclidean
+        let metresToLY (x: float) = (float x) / lyFactor
+        let regionId (system: SolarSystemData) = 
+            let r = region system.constellationId
+            r.id
+
+        let distance (x: SolarSystemData) (y: SolarSystemData)= euclideanData x.position y.position |> metresToLY 
+
+        // Approximately O(n^2) 
+        let neighbours (allSystems: SolarSystemData []) (system: SolarSystemData)=                        
+            allSystems  |> Seq.filter (fun s -> s <> system)
+                        |> Seq.map (fun s -> (distance s system, s))
+                        |> Seq.filter (fun (d,_) -> d <= neighbourMaxDistance)
+                        |> Seq.sortBy fst
+                        |> Seq.map (fun (d,s) -> { SolarSystemJumpData.distance = d; solarSystemId = s.id; })
+                        |> Array.ofSeq
+        
+        let jumps = jumpableSolarSystems
+                        |> Array.Parallel.map (fun s -> { SolarSystemJumpsData.solarSystemId = s.id;
+                                                                               jumps = neighbours solarSystems s })
+                    
+        jumps
+
     let toPlanet (getSystem: int -> SolarSystemData) (id: string, value: Planet.Root) =
         let system = getSystem value.SystemId
 
@@ -256,7 +294,8 @@ type SourceCodeGenerator(config: GenerateConfig)=
     let generateUniverseTypes namespaceName folder =
         async {
             return! [   typedefof<PositionData>; typedefof<PlanetRefData>; typedefof<SystemSecurity>;
-                        typedefof<RegionData>; typedefof<ConstellationData>; typedefof<SolarSystemData>;
+                        typedefof<RegionData>; typedefof<ConstellationData>; typedefof<SolarSystemData>; 
+                        typedefof<SolarSystemJumpData>; typedefof<SolarSystemJumpsData>; 
                         typedefof<PlanetData>; typedefof<StarData>; typedefof<StargateData>;
                         typedefof<AsteroidBeltData>; typedefof<StationData>; typedefof<MoonData>;
                         typedefof<CategoryData>; typedefof<GroupData>; typedefof<MarketGroupData>;
@@ -302,7 +341,17 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let mapModule = modulePrefix
 
             return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
-        }               
+        }
+
+    let generateSolarSystemJumpSource namespaceName folder importedNamespaces (values: seq<SolarSystemJumpsData>)=
+        async {
+            let id (v: SolarSystemJumpsData) = v.solarSystemId
+            let funcName = "getSolarSystemJumps"
+            let modulePrefix = "SolarSystemJumps"
+            let mapModule = modulePrefix
+
+            return! values |> FSharpSource.genEntitiesSource folder config.sourcePartitions namespaceName id funcName modulePrefix mapModule [] importedNamespaces
+        }
 
     let generatePlanetSource namespaceName folder importedNamespaces (values: seq<PlanetData>)=
         async {
@@ -566,6 +615,9 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! solarSystems = EsiFiles.solarSystems sourcePath  |> Async.map (Seq.map (toSolarSystem getConstellationRegion) >> Array.ofSeq)
             let! solarSystemMapFile, solarSystemDataFiles = solarSystems |> generateSolarSystemSource namespaceName rootFolder sharedTypesNamespace
             
+            let solarSystempJumps = toSolarSystemJumpData getConstellationRegion solarSystems
+            let! solarSystemJumpsMapFile, solarSystemJumpsDataFiles = solarSystempJumps |> generateSolarSystemJumpSource namespaceName rootFolder sharedTypesNamespace
+
             let getSystem id = solarSystems |> Seq.find (fun s -> s.id = id)
 
             let! planets = EsiFiles.planets sourcePath |> Async.map (Seq.map (toPlanet getSystem) >> Array.ofSeq )
@@ -573,8 +625,7 @@ type SourceCodeGenerator(config: GenerateConfig)=
 
             let! stargates = EsiFiles.stargates sourcePath |> Async.map (Seq.map toStargate >> Array.ofSeq)
             let! stargateMapFile, stargateDataFiles = stargates |> generateStargateSource namespaceName rootFolder sharedTypesNamespace
-
-            // TODO:
+            
             let getBeltPlanet (beltId: int)=
                 planets |> Seq.filter (fun p -> p.asteroidBeltIds |> Array.contains beltId)
                         |> Seq.head
@@ -590,9 +641,10 @@ type SourceCodeGenerator(config: GenerateConfig)=
             let! stationMapFile, stationDataFiles = stations |> generateStationSource namespaceName rootFolder sharedTypesNamespace
             
             // adjust .fsproj...
-            let data = [ regionDataFiles; constellationDataFiles; solarSystemDataFiles; planetDataFiles; stargateDataFiles; beltDataFiles; stationDataFiles; starDataFiles; ]
+            let data = [ regionDataFiles; constellationDataFiles; solarSystemDataFiles; solarSystemJumpsDataFiles; planetDataFiles; stargateDataFiles; beltDataFiles; stationDataFiles; starDataFiles; ]
                         |> Seq.collect (fun xs -> xs)
-            let maps = [ regionMapFile; constellationMapFile; solarSystemMapFile; planetMapFile; stargateMapFile; beltMapFile; stationMapFile; starMapFile]
+            
+            let maps = [ regionMapFile; constellationMapFile; solarSystemMapFile; solarSystemJumpsMapFile; planetMapFile; stargateMapFile; beltMapFile; stationMapFile; starMapFile]
                     
             
             let! projectFilePath = FSharpSource.genProjectFile rootFolder projectFileName [] data maps [sharedTypesPath]

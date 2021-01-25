@@ -96,6 +96,11 @@ module Math =
         let primes = allPrimes
         primes |> Seq.takeWhile (fun p -> p <= limit) |> Seq.rev |> Seq.head
 
+    let sq (x: float) = x * x
+    let euclidean (coords: seq<float>) =
+        coords  |> Seq.map (float >> abs >> sq)
+                |> Seq.sum 
+                |> sqrt
 
 module Types =
     open System
