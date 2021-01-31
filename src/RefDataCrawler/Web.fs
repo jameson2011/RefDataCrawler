@@ -33,6 +33,9 @@ module HttpHeaders =
     [<Literal>]
     let esiErrorLimitReset  = "X-Esi-Error-Limit-Reset"
 
+    [<Literal>]
+    let esiPages = "X-Pages"
+
 module HttpRoutes =
     
     let urlQuery path (queryParams: seq<(string * string)>) =
@@ -114,6 +117,14 @@ module HttpResponses=
                                          | true,x -> float x |> TimeSpan.FromSeconds |> Some 
                                          | _ -> None )
 
+    
+    let private getPages (response: HttpResponseMessage) =
+        response 
+            |> getHeaderValue HttpHeaders.esiPages
+            |> Option.bind (fun v -> match System.Int32.TryParse(v)  with
+                                        | true, x -> Some x
+                                        | _ -> None)
+
     let private getAge (response: HttpResponseMessage)=
         Option.ofNullable response.Headers.Age 
 
@@ -149,6 +160,7 @@ module HttpResponses=
                     ETag = getEtag resp |> Option.map (fun t -> { ETag.tag = t });
                     ErrorLimit =  (getErrorLimitRemaining resp);
                     ErrorWindow = (getErrorLimitReset resp);
+                    Pages = (getPages resp);
                 }
         }
 
@@ -162,6 +174,7 @@ module HttpResponses=
                     ETag = getEtag resp |> Option.map (fun t -> { ETag.tag = t });
                     ErrorLimit =  (getErrorLimitRemaining resp);
                     ErrorWindow = (getErrorLimitReset resp);
+                    Pages = (getPages resp);
                 }
         }
         
@@ -174,6 +187,7 @@ module HttpResponses=
                     ETag = None;
                     ErrorLimit =  (getErrorLimitRemaining resp);
                     ErrorWindow = (getErrorLimitReset resp);
+                    Pages = (getPages resp);
                 }
             }
             
@@ -186,6 +200,7 @@ module HttpResponses=
                     ETag = None;
                     ErrorLimit =  (getErrorLimitRemaining resp);
                     ErrorWindow = (getErrorLimitReset resp);
+                    Pages = (getPages resp);
                 }
         }
 
@@ -199,6 +214,7 @@ module HttpResponses=
                     ETag = None;
                     ErrorLimit =  (getErrorLimitRemaining resp);
                     ErrorWindow = (getErrorLimitReset resp);
+                    Pages = (getPages resp);
                 }
         }
     let private parseErrorResp resp = 
@@ -210,6 +226,7 @@ module HttpResponses=
                     ETag = None;
                     ErrorLimit =  (getErrorLimitRemaining resp);
                     ErrorWindow = (getErrorLimitReset resp);
+                    Pages = (getPages resp);
                 }
         }
 
@@ -222,6 +239,7 @@ module HttpResponses=
                     ETag = None;
                     ErrorLimit =  (getErrorLimitRemaining resp);
                     ErrorWindow = (getErrorLimitReset resp);
+                    Pages = (getPages resp);
                 }
         }
 
@@ -232,6 +250,7 @@ module HttpResponses=
             ETag = None;
             ErrorLimit = Some 0;
             ErrorWindow = defaultErrorWindow |> Some;
+            Pages = None;
         }
         
     let maxWaitTime (resps: seq<RefDataCrawler.WebResponse>)=

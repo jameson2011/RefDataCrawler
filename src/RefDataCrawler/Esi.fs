@@ -61,13 +61,13 @@ module Esi=
         id |> sprintf "v1/universe/stars/%s/" |> getUrl
         
     let groupIdsRequest page =
-        getUrlQuery "v1/universe/groups/" [ ("page", string page) ]
+        getUrlQuery "latest/universe/groups/" [ ("page", string page) ]
             
     let groupRequest id =
         id |> sprintf "v1/universe/groups/%s/" |> getUrl
 
     let typeIdsRequest page = 
-        getUrlQuery "v1/universe/types/" [ ("page", string page) ]
+        getUrlQuery "latest/universe/types/" [ ("page", string page) ]
 
     let typeRequest id =
         id |> sprintf "v3/universe/types/%s/" |> getUrl
@@ -122,18 +122,20 @@ module Esi=
 
     
     let rec private getPagedEntityIds client (req: int -> HttpRequestMessage) page (ids: int[]) =
-        async { 
+        async {             
             let! resp = req page |> HttpResponses.response client
             
             let pageResp = resp |> mapRespArray (fun r -> r.Message |> Newtonsoft.Json.JsonConvert.DeserializeObject<int[]> ) 
-                
+            let totalPages = resp.Pages |> Option.defaultValue 0
+                            
             return! match pageResp with
                     | Choice1Of2 xs -> match xs with
                                         | [||] -> async { return Choice1Of2 ids}
-                                        | xs -> Array.concat [ids;xs] |> getPagedEntityIds client req (page+1) 
+                                        | xs -> let ids = Array.concat [ids; xs] 
+                                                if page >= totalPages then async { return Choice1Of2 ids}
+                                                else ids |> getPagedEntityIds client req (page+1) 
                     | Choice2Of2 _ -> async { return pageResp }
-            }
-
+        }
 
     let regionIds client = getEntityIds client regionIdsRequest
         

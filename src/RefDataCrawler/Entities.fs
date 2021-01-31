@@ -53,6 +53,7 @@ type WebResponse=
         Retry: TimeSpan option;
         ErrorLimit: int option;
         ErrorWindow: TimeSpan option;
+        Pages: int option;
         ETag: ETag option;
         Message: string;
     } 

@@ -126,6 +126,7 @@ type EsiCrawlerActor(log: PostMessage, crawlStatus: PostMessage, writeEntity: Po
     let onGetEntityIds (post: PostMessage) (actorMsg: ActorMessage) (getIds) (msgIds: string[] -> ActorMessage)=
         async { 
             let entityType = entityTypeName actorMsg
+            do postDiscovered entityType [||]
             let! resp = getIds client
             return match resp with
                     | Choice1Of2 entityIds ->   let entityIds = entityIds |> Seq.map string |> Array.ofSeq
